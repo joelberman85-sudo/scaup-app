@@ -885,7 +885,9 @@ const SUPABASE_URL      = 'https://ipgwfeivywknnwcdxrdj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_FgTaMkBJBbnV4QxnGOwKbA_1mkVMALD';
 
 const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+});
 
 /* ════════════════════════════════════════
    CONFIG
