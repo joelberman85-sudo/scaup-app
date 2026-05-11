@@ -1400,17 +1400,23 @@ async function saveRmItem() {
     description: document.getElementById('rm-desc').value.trim(),
     okr_id:      okrVal || null,
   };
-  if (editRm) {
-    await db.from('roadmap_items').update(d).eq('id', editRm);
-  } else {
-    await db.from('roadmap_items').insert({ ...d, id: uid() });
+  try {
+    if (editRm) {
+      const { error } = await db.from('roadmap_items').update(d).eq('id', editRm);
+      if (error) throw error;
+    } else {
+      const { error } = await db.from('roadmap_items').insert({ ...d, id: uid() });
+      if (error) throw error;
+    }
+    closeRmModal();
+    const { data } = await db.from('roadmap_items').select('*').order('created_at');
+    state.roadmap = (data||[]).map(dbToRm);
+    updateBacklogCount();
+    renderRoadmap();
+    renderBacklog();
+  } catch (err) {
+    alert('Error saving item: ' + err.message);
   }
-  closeRmModal();
-  const { data } = await db.from('roadmap_items').select('*').order('created_at');
-  state.roadmap = (data||[]).map(dbToRm);
-  updateBacklogCount();
-  renderRoadmap();
-  renderBacklog();
 }
 
 async function deleteRmItem() {
