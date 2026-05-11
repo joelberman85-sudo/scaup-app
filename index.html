@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scaup GTM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+:root {
+  --brand: #4070F4;
+  --brand-light: #eef3fe;
+  --border: #e5e7eb;
+  --bg: #f3f4f6;
+  --white: #ffffff;
+  --text: #111827;
+  --muted: #6b7280;
+  --subtle: #9ca3af;
+}
+
+body { background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; font-size: 14px; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+/* ── Login ── */
+#login-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.login-card {
+  background: white; border-radius: 20px; border: 1.5px solid var(--border);
+  padding: 40px; width: 400px; box-shadow: 0 8px 40px rgba(0,0,0,.08);
+}
+.login-logo {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 32px;
+}
+.login-logo-icon {
+  width: 44px; height: 44px; background: var(--brand); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 20px;
+}
+.login-logo-text { font-size: 20px; font-weight: 700; color: var(--text); }
+.login-logo-sub { font-size: 12px; color: var(--muted); }
+.login-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+.login-field { margin-bottom: 16px; }
+.login-field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em; }
+.login-field input {
+  width: 100%; padding: 11px 14px; border-radius: 10px;
+  border: 1.5px solid var(--border); font-size: 14px; outline: none;
+  transition: border-color 0.15s;
+}
+.login-field input:focus { border-color: var(--brand); }
+.login-btn {
+  width: 100%; padding: 12px; border-radius: 10px; border: none;
+  background: var(--brand); color: white; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.15s; margin-top: 4px;
+}
+.login-btn:hover { opacity: .88; }
+.login-btn:disabled { opacity: .5; cursor: not-allowed; }
+.login-msg { margin-top: 16px; font-size: 13px; text-align: center; color: var(--muted); }
+.login-msg.success { color: #16a34a; }
+.login-msg.error { color: #ef4444; }
+
+/* ── App shell ── */
+#app { display: none; flex: 1; overflow: hidden; }
+#app.ready { display: flex; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 200px; min-width: 200px; background: var(--white);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100vh;
+}
+.sidebar-logo {
+  padding: 18px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-icon {
+  width: 32px; height: 32px; background: var(--brand); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 15px;
+}
+.logo-text { font-weight: 600; font-size: 14px; color: var(--text); }
+.logo-sub  { font-size: 11px; color: var(--subtle); }
+
+.sidebar-nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 500; color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+  border: none; background: none; width: 100%; text-align: left;
+}
+.nav-item:hover { background: #f9fafb; color: var(--text); }
+.nav-item.active { background: var(--brand-light); color: var(--brand); font-weight: 600; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+.sidebar-user {
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.sidebar-user-avatar {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 12px; flex-shrink: 0;
+}
+.sidebar-user-info { flex: 1; min-width: 0; }
+.sidebar-user-email { font-size: 11px; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-signout {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  border-radius: 8px; font-size: 12px; font-weight: 500; color: var(--muted);
+  background: none; border: 1px solid var(--border); cursor: pointer;
+  width: 100%; transition: background 0.15s; margin-top: 4px;
+}
+.sidebar-signout:hover { background: #f9fafb; }
+
+.sidebar-bottom {
+  padding: 12px 8px; border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.sidebar-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 8px;
+  font-size: 12px; font-weight: 500; color: var(--muted);
+  background: none; border: 1px solid var(--border);
+  cursor: pointer; width: 100%; transition: background 0.15s;
+}
+.sidebar-btn:hover { background: #f9fafb; }
+.sidebar-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* ── Main ── */
+.main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+/* ── Views ── */
+.view { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.view.active { display: flex; }
+
+/* ── Page header ── */
+.page-header {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  padding: 20px 24px 16px; flex-shrink: 0;
+}
+.page-header h1 { font-size: 18px; font-weight: 700; color: var(--text); }
+.page-header p  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+.header-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 14px; gap: 12px;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 9px; border: none;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+}
+.btn svg { width: 14px; height: 14px; }
+.btn-primary { background: var(--brand); color: white; }
+.btn-primary:hover { opacity: .88; }
+
+/* ── Toggle / Filters ── */
+.toggle { display: flex; background: #f3f4f6; border-radius: 8px; padding: 3px; gap: 2px; }
+.toggle-btn {
+  padding: 5px 14px; border-radius: 6px; border: none; background: none;
+  font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.toggle-btn.active { background: white; color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter {
+  padding: 5px 10px; border-radius: 7px; border: 1.5px solid var(--border);
+  font-size: 12px; font-weight: 500; color: var(--text); background: white;
+  cursor: pointer; outline: none;
+}
+.filter:focus { border-color: var(--brand); }
+
+/* ── Stats bar ── */
+.stats-bar { display: flex; gap: 20px; align-items: center; }
+.stat-item { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+.stat-val { font-weight: 700; font-size: 13px; }
+.stat-val.dark { color: var(--text); }
+.stat-val.blue { color: var(--brand); }
+.stat-val.green { color: #16a34a; }
+
+/* ── Search ── */
+.search-wrap { position: relative; display: flex; align-items: center; }
+.search-wrap svg { position: absolute; left: 10px; width: 14px; height: 14px; color: var(--subtle); }
+.search-input { padding: 7px 12px 7px 32px; border-radius: 9px; border: 1.5px solid var(--border); font-size: 13px; outline: none; width: 200px; }
+.search-input:focus { border-color: var(--brand); }
+
+/* ── Badges ── */
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+.badge-gray   { background: #f3f4f6; color: #6b7280; }
+.badge-blue   { background: #eff6ff; color: #3b82f6; }
+.badge-purple { background: #f5f3ff; color: #7c3aed; }
+.badge-green  { background: #f0fdf4; color: #16a34a; }
+.badge-red    { background: #fff1f2; color: #e11d48; }
+.type-badge   { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 700; letter-spacing: .02em; }
+.type-gtm     { background: #fff7ed; color: #ea580c; }
+.type-product { background: #f0f9ff; color: #0369a1; }
+.source-badge { background: #f3f4f6; color: #6b7280; border-radius: 5px; padding: 2px 8px; font-size: 11px; font-weight: 500; }
+.priority-arrow { font-size: 16px; font-weight: 700; flex-shrink: 0; }
+
+/* ── Swimlane ── */
+.swimlane-wrap { flex: 1; overflow: auto; padding: 20px 24px; }
+.swimlane-grid {
+  display: grid;
+  grid-template-columns: 76px repeat(3, 1fr);
+  gap: 0;
+  min-width: 700px;
+}
+.swimlane-col-header {
+  padding: 10px 14px; font-size: 12px; font-weight: 700;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .05em;
+  border-bottom: 2px solid var(--border); background: var(--white); position: sticky; top: 0; z-index: 1;
+}
+.swimlane-row-label {
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 14px;
+  writing-mode: vertical-rl; text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted);
+}
+.swimlane-cell {
+  border-left: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 12px; min-height: 120px; display: flex; flex-direction: column; gap: 8px;
+  transition: background 0.15s;
+}
+.swimlane-cell.drag-over { background: var(--brand-light); }
+
+/* ── Roadmap card ── */
+.rm-card {
+  background: var(--white); border-radius: 10px; border: 1.5px solid var(--border);
+  padding: 10px 12px; cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  user-select: none;
+}
+.rm-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); border-color: #c7d2e7; }
+.rm-card.dragging { opacity: 0.4; }
+.rm-card-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.rm-avatar {
+  width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 10px;
+}
+.rm-card-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; flex: 1; }
+.rm-card-owner { font-size: 11px; color: var(--subtle); margin-top: 1px; }
+.rm-card-tags  { display: flex; flex-wrap: wrap; gap: 5px; }
+
+/* ── Timeline ── */
+.timeline-wrap { flex: 1; overflow: auto; padding: 20px 24px; }
+.timeline-table { background: white; border-radius: 14px; border: 1.5px solid var(--border); overflow: hidden; min-width: 700px; }
+.timeline-header {
+  display: grid; grid-template-columns: 2fr repeat(3, 1fr);
+  padding: 10px 16px; background: #f9fafb; border-bottom: 1.5px solid var(--border);
+  font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; gap: 12px;
+}
+.timeline-row {
+  display: grid; grid-template-columns: 2fr repeat(3, 1fr);
+  padding: 11px 16px; border-top: 1px solid #f3f4f6;
+  align-items: center; gap: 12px; transition: background 0.1s; cursor: pointer;
+}
+.timeline-row:hover { background: #f8faff; }
+.tl-title { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.tl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Pipeline ── */
+.pipeline-wrap { flex: 1; overflow-x: auto; overflow-y: hidden; padding: 20px 24px; }
+.pipeline-board { display: flex; gap: 14px; height: 100%; align-items: flex-start; min-width: max-content; }
+.pipeline-lane {
+  width: 240px; flex-shrink: 0; background: var(--white);
+  border-radius: 14px; border: 1.5px solid var(--border);
+  display: flex; flex-direction: column; max-height: 100%;
+}
+.lane-header {
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.lane-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.lane-title { font-size: 12px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .04em; flex: 1; }
+.lane-count { font-size: 12px; font-weight: 600; color: var(--muted); background: #f3f4f6; border-radius: 99px; padding: 1px 8px; }
+.lane-cards {
+  flex: 1; overflow-y: auto; padding: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+  min-height: 80px; transition: background 0.15s;
+}
+.lane-cards.drag-over { background: var(--brand-light); border-radius: 0 0 12px 12px; }
+
+/* ── Lead card ── */
+.lead-card {
+  background: var(--bg); border-radius: 10px; border: 1.5px solid var(--border);
+  padding: 12px; cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  user-select: none;
+}
+.lead-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,.09); border-color: #c7d2e7; }
+.lead-card.dragging { opacity: 0.4; }
+.lead-card.lost { opacity: 0.55; }
+.lead-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.lead-avatar {
+  width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 11px;
+}
+.lead-company { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2; }
+.lead-contact { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.lead-value { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.lead-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+.lead-date { font-size: 11px; color: var(--subtle); }
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(17,24,39,.4); backdrop-filter: blur(2px);
+  align-items: center; justify-content: center; z-index: 500;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: white; border-radius: 18px; width: 520px; max-width: 95vw;
+  max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.15);
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 0; margin-bottom: 18px;
+}
+.modal-header h2 { font-size: 17px; font-weight: 700; }
+.modal-close {
+  width: 28px; height: 28px; border-radius: 8px; border: none;
+  background: #f3f4f6; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: #e5e7eb; }
+.modal-body { padding: 0 24px; display: flex; flex-direction: column; gap: 14px; }
+.modal-footer {
+  padding: 20px 24px; border-top: 1px solid var(--border);
+  margin-top: 20px; display: flex; align-items: center;
+}
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.field input, .field select, .field textarea {
+  padding: 9px 12px; border-radius: 9px; border: 1.5px solid var(--border);
+  font-size: 13px; font-family: inherit; outline: none; transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--brand); }
+.field textarea { resize: vertical; min-height: 70px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.delete-btn {
+  padding: 8px 16px; border-radius: 8px; border: none;
+  background: #fff1f2; color: #e11d48; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.delete-btn:hover { background: #ffe4e6; }
+.cancel-btn {
+  padding: 8px 16px; border-radius: 8px; border: 1.5px solid var(--border);
+  background: none; color: var(--text); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.cancel-btn:hover { background: #f9fafb; }
+.save-btn {
+  padding: 8px 20px; border-radius: 8px; border: none;
+  background: var(--brand); color: white; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.save-btn:hover { opacity: .88; }
+
+.hidden { display: none !important; }
+.lead-card, .rm-card { pointer-events: auto; }
+
+/* ── Backlog ── */
+.backlog-wrap { flex: 1; overflow: auto; padding: 20px 24px; }
+.backlog-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 260px; color: var(--subtle); font-size: 13px; gap: 6px;
+}
+.backlog-empty svg { width: 36px; height: 36px; color: #d1d5db; }
+.backlog-table { background: white; border-radius: 14px; border: 1.5px solid var(--border); overflow: hidden; }
+.backlog-header {
+  display: grid; grid-template-columns: 1fr 90px 100px 110px 90px;
+  padding: 10px 16px; background: #f9fafb; border-bottom: 1.5px solid var(--border);
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em; gap: 12px;
+}
+.backlog-row {
+  display: grid; grid-template-columns: 1fr 90px 100px 110px 90px;
+  padding: 12px 16px; border-top: 1px solid #f3f4f6;
+  align-items: center; gap: 12px; cursor: pointer; transition: background 0.1s;
+}
+.backlog-row:hover { background: #f8faff; }
+.backlog-row:first-child { border-top: none; }
+.bl-title { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.bl-title-sub { font-size: 11px; color: var(--subtle); font-weight: 400; }
+.bl-assign {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 7px; border: 1.5px dashed #d1d5db;
+  font-size: 12px; font-weight: 500; color: var(--muted);
+  background: none; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+}
+.bl-assign:hover { border-color: var(--brand); color: var(--brand); }
+
+/* ── Team ── */
+.team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; padding: 24px; align-content: start; overflow-y: auto; }
+.team-card { background: var(--white); border-radius: 12px; border: 1.5px solid var(--border); padding: 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s; }
+.team-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); border-color: #c7d2e7; }
+.team-avatar-lg { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 17px; flex-shrink: 0; }
+.team-info { flex: 1; min-width: 0; }
+.team-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.team-role { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.team-email { font-size: 11px; color: var(--subtle); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 260px; color: var(--subtle); font-size: 13px; gap: 6px; }
+.team-empty svg { width: 36px; height: 36px; color: #d1d5db; }
+
+/* ── OKR ── */
+.okr-wrap { flex: 1; overflow: auto; padding: 20px 24px; }
+.okr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; align-content: start; }
+.okr-card {
+  background: var(--white); border-radius: 14px; border: 1.5px solid var(--border);
+  padding: 18px; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.okr-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.09); border-color: #c7d2e7; }
+.okr-card-header { display: flex; align-items: flex-start; gap: 10px; }
+.okr-icon {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 16px;
+}
+.okr-title { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.35; flex: 1; }
+.okr-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.okr-progress-bar {
+  height: 5px; background: #e5e7eb; border-radius: 99px; overflow: hidden;
+}
+.okr-progress-fill { height: 100%; background: var(--brand); border-radius: 99px; transition: width 0.3s; }
+.okr-progress-label { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.kr-list { display: flex; flex-direction: column; gap: 6px; }
+.kr-item {
+  display: flex; align-items: flex-start; gap: 8px; padding: 7px 10px;
+  background: #f9fafb; border-radius: 8px; font-size: 12px; color: var(--text); line-height: 1.4;
+}
+.kr-item.done { color: var(--muted); text-decoration: line-through; }
+.kr-check {
+  width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid #d1d5db;
+  flex-shrink: 0; margin-top: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  background: white; transition: background 0.15s, border-color 0.15s;
+}
+.kr-check.checked { background: var(--brand); border-color: var(--brand); }
+.kr-check.checked::after { content: '✓'; font-size: 9px; color: white; font-weight: 700; }
+.okr-connected { display: flex; flex-wrap: wrap; gap: 5px; }
+.okr-chip {
+  background: var(--brand-light); color: var(--brand); border-radius: 6px;
+  padding: 3px 9px; font-size: 11px; font-weight: 500;
+}
+.okr-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 260px; color: var(--subtle); font-size: 13px; gap: 6px; grid-column: 1/-1;
+}
+.okr-empty svg { width: 36px; height: 36px; color: #d1d5db; }
+/* KR editor in modal */
+.kr-editor { display: flex; flex-direction: column; gap: 6px; }
+.kr-editor-row { display: flex; align-items: center; gap: 6px; }
+.kr-editor-row input {
+  flex: 1; padding: 7px 10px; border-radius: 8px; border: 1.5px solid var(--border);
+  font-size: 13px; outline: none;
+}
+.kr-editor-row input:focus { border-color: var(--brand); }
+.kr-remove-btn {
+  width: 26px; height: 26px; border-radius: 7px; border: none;
+  background: #fff1f2; color: #e11d48; font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.kr-add-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: 8px; border: 1.5px dashed #d1d5db;
+  background: none; color: var(--muted); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: border-color 0.15s, color 0.15s; margin-top: 2px;
+}
+.kr-add-btn:hover { border-color: var(--brand); color: var(--brand); }
+
+/* ── Loading spinner ── */
+.spinner-overlay {
+  position: fixed; inset: 0; background: rgba(255,255,255,.7);
+  display: flex; align-items: center; justify-content: center; z-index: 900;
+}
+.spinner {
+  width: 32px; height: 32px; border: 3px solid var(--border);
+  border-top-color: var(--brand); border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ── App ── -->
+<!-- ── Login screen ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">S</div>
+      <div>
+        <div class="login-logo-text">Scaup GTM</div>
+        <div class="login-logo-sub" style="font-size:12px;color:var(--muted)">Internal Tool</div>
+      </div>
+    </div>
+    <div id="login-form-wrap">
+      <div class="login-title">Sign in</div>
+      <div class="login-sub">Use your Google account to access the app.</div>
+      <button class="login-btn" onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:10px;background:white;color:#111827;border:1.5px solid #e5e7eb;">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign in with Google
+      </button>
+      <div class="login-msg" id="login-msg"></div>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">S</div>
+      <div>
+        <div class="logo-text">Scaup GTM</div>
+        <div class="logo-sub">Internal Tool</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="roadmap" onclick="switchView('roadmap')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+        Roadmap
+      </button>
+      <button class="nav-item" data-view="backlog" onclick="switchView('backlog')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M4 18h6"/></svg>
+        Backlog
+        <span id="backlog-count" style="margin-left:auto;background:#f3f4f6;color:var(--muted);border-radius:99px;font-size:11px;font-weight:600;padding:1px 7px;"></span>
+      </button>
+      <button class="nav-item" data-view="pipeline" onclick="switchView('pipeline')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 8a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2z"/></svg>
+        Pipeline
+      </button>
+      <button class="nav-item" data-view="okrs" onclick="switchView('okrs')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        OKRs
+        <span id="okr-count" style="margin-left:auto;background:#f3f4f6;color:var(--muted);border-radius:99px;font-size:11px;font-weight:600;padding:1px 7px;"></span>
+      </button>
+      <button class="nav-item" data-view="team" onclick="switchView('team')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Team
+        <span id="team-count" style="margin-left:auto;background:#f3f4f6;color:var(--muted);border-radius:99px;font-size:11px;font-weight:600;padding:1px 7px;"></span>
+      </button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <button class="sidebar-btn" onclick="exportData()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Export JSON
+      </button>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar" id="user-avatar">?</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-email" id="user-email">—</div>
+        <button class="sidebar-signout" onclick="signOut()" style="margin-top:6px;padding:4px 10px;font-size:11px">Sign out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ROADMAP VIEW -->
+    <section id="view-roadmap" class="view active">
+      <div class="page-header">
+        <h1>Product &amp; GTM Roadmap</h1>
+        <p>Plan and track initiatives across quarters</p>
+        <div class="header-row">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="toggle">
+              <button class="toggle-btn active" id="btn-swimlane" onclick="setRmView('swimlane')">Swimlane</button>
+              <button class="toggle-btn" id="btn-timeline" onclick="setRmView('timeline')">Timeline</button>
+            </div>
+            <div class="filters">
+              <select class="filter" onchange="setFilter('status',this.value)">
+                <option value="">All Status</option>
+                <option>Planned</option><option>In Progress</option><option>Validating</option><option>Done</option><option>Blocked</option>
+              </select>
+              <select class="filter" onchange="setFilter('quarter',this.value)">
+                <option value="">All Quarters</option>
+                <option>Q2 2026</option><option>Q3 2026</option><option>Q4 2026</option>
+              </select>
+              <select class="filter" onchange="setFilter('type',this.value)">
+                <option value="">All Types</option>
+                <option>GTM</option><option>Product</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="openRmModal()">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            Add Item
+          </button>
+        </div>
+      </div>
+      <div id="rm-swimlane" class="swimlane-wrap">
+        <div class="swimlane-grid" id="swimlane-grid"></div>
+      </div>
+      <div id="rm-timeline" class="timeline-wrap hidden">
+        <div class="timeline-table" id="timeline-table"></div>
+      </div>
+    </section>
+
+    <!-- BACKLOG VIEW -->
+    <section id="view-backlog" class="view">
+      <div class="page-header">
+        <h1>Backlog</h1>
+        <p>All items — filter by quarter, type or status</p>
+        <div class="header-row">
+          <div class="filters">
+            <select class="filter" onchange="setBacklogFilter('quarter',this.value)">
+              <option value="">All Quarters</option>
+              <option value="__none__">No quarter</option>
+              <option>Q2 2026</option><option>Q3 2026</option><option>Q4 2026</option>
+            </select>
+            <select class="filter" onchange="setBacklogFilter('type',this.value)">
+              <option value="">All Types</option>
+              <option>GTM</option><option>Product</option>
+            </select>
+            <select class="filter" onchange="setBacklogFilter('status',this.value)">
+              <option value="">All Status</option>
+              <option>Planned</option><option>In Progress</option><option>Validating</option><option>Done</option><option>Blocked</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="openRmModal(null,true)">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            Add to Backlog
+          </button>
+        </div>
+      </div>
+      <div class="backlog-wrap" id="backlog-wrap"></div>
+    </section>
+
+    <!-- PIPELINE VIEW -->
+    <section id="view-pipeline" class="view">
+      <div class="page-header">
+        <h1>Pipeline</h1>
+        <p>Track leads through your sales process</p>
+        <div class="header-row">
+          <div class="stats-bar">
+            <div class="stat-item">Total <span class="stat-val dark" id="stat-total">0</span></div>
+            <div class="stat-item">Pipeline <span class="stat-val blue" id="stat-pipeline">$0</span></div>
+            <div class="stat-item">Closed Won <span class="stat-val green" id="stat-won">$0</span></div>
+            <div class="stat-item">Win Rate <span class="stat-val dark" id="stat-wr">0%</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="search-wrap">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input class="search-input" type="text" placeholder="Search leads..." oninput="setSearch(this.value)">
+            </div>
+            <button class="btn btn-primary" onclick="openLeadModal()">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+              Add Lead
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="pipeline-wrap">
+        <div class="pipeline-board" id="pipeline-board"></div>
+      </div>
+    </section>
+
+    <!-- OKR VIEW -->
+    <section id="view-okrs" class="view">
+      <div class="page-header">
+        <h1>OKRs</h1>
+        <p>Objectives &amp; Key Results — every roadmap item should serve an OKR</p>
+        <div class="header-row">
+          <div class="filters">
+            <select class="filter" onchange="setOkrFilter('quarter',this.value)">
+              <option value="">All Quarters</option>
+              <option>Q2 2026</option><option>Q3 2026</option><option>Q4 2026</option>
+            </select>
+            <select class="filter" onchange="setOkrFilter('owner',this.value)" id="okr-filter-owner">
+              <option value="">All Owners</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="openOkrModal()">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            Add Objective
+          </button>
+        </div>
+      </div>
+      <div class="okr-wrap"><div class="okr-grid" id="okr-grid"></div></div>
+    </section>
+
+    <!-- TEAM VIEW -->
+    <section id="view-team" class="view">
+      <div class="page-header">
+        <h1>Team</h1>
+        <p>Manage members for assignment across roadmap and pipeline</p>
+        <div class="header-row">
+          <div></div>
+          <button class="btn btn-primary" onclick="openTeamModal()">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            Add Member
+          </button>
+        </div>
+      </div>
+      <div id="team-grid" class="team-grid"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ROADMAP MODAL -->
+<div class="modal-overlay" id="rm-modal" onclick="if(event.target===this)closeRmModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="rm-modal-title">Add Item</h2>
+      <button class="modal-close" onclick="closeRmModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="rm-id">
+      <div class="field"><label>Title *</label><input type="text" id="rm-title" placeholder="Enter title..."></div>
+      <div class="field-row">
+        <div class="field"><label>Quarter</label>
+          <select id="rm-quarter"><option value="">— No quarter (Backlog) —</option><option>Q2 2026</option><option>Q3 2026</option><option>Q4 2026</option></select>
+        </div>
+        <div class="field"><label>Type</label>
+          <select id="rm-type"><option>GTM</option><option>Product</option></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Status</label>
+          <select id="rm-status"><option>Planned</option><option>In Progress</option><option>Validating</option><option>Done</option><option>Blocked</option></select>
+        </div>
+        <div class="field"><label>Priority</label>
+          <select id="rm-priority"><option>High</option><option>Medium</option><option>Low</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Owner</label><select id="rm-owner"><option value="">— Unassigned —</option></select></div>
+      <div class="field"><label>OKR</label><select id="rm-okr"><option value="">— Not linked to an OKR —</option></select></div>
+      <div class="field"><label>Description</label><textarea id="rm-desc" placeholder="Add description..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="delete-btn hidden" id="rm-del-btn" onclick="deleteRmItem()">Delete Item</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="cancel-btn" onclick="closeRmModal()">Cancel</button>
+        <button class="save-btn" onclick="saveRmItem()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OKR MODAL -->
+<div class="modal-overlay" id="okr-modal" onclick="if(event.target===this)closeOkrModal()">
+  <div class="modal" style="width:560px">
+    <div class="modal-header">
+      <h2 id="okr-modal-title">Add Objective</h2>
+      <button class="modal-close" onclick="closeOkrModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="okr-id">
+      <div class="field"><label>Objective *</label><input type="text" id="okr-title" placeholder="e.g. Increase paid users..."></div>
+      <div class="field-row">
+        <div class="field"><label>Quarter</label>
+          <select id="okr-quarter"><option value="">— No quarter —</option><option>Q2 2026</option><option>Q3 2026</option><option>Q4 2026</option></select>
+        </div>
+        <div class="field"><label>Owner</label><select id="okr-owner"><option value="">— Unassigned —</option></select></div>
+      </div>
+      <div class="field">
+        <label>Key Results</label>
+        <div class="kr-editor" id="kr-editor"></div>
+        <button class="kr-add-btn" onclick="addKrRow()">
+          <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+          Add key result
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="delete-btn hidden" id="okr-del-btn" onclick="deleteOkrItem()">Delete Objective</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="cancel-btn" onclick="closeOkrModal()">Cancel</button>
+        <button class="save-btn" onclick="saveOkrItem()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEAD MODAL -->
+<div class="modal-overlay" id="lead-modal" onclick="if(event.target===this)closeLeadModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="lead-modal-title">Add Lead</h2>
+      <button class="modal-close" onclick="closeLeadModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="lead-id">
+      <div class="field-row">
+        <div class="field"><label>Company *</label><input type="text" id="lead-company" placeholder="Company name..."></div>
+        <div class="field"><label>Contact Name</label><input type="text" id="lead-contact" placeholder="Full name..."></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Email</label><input type="email" id="lead-email" placeholder="email@company.com"></div>
+        <div class="field"><label>Website</label><input type="text" id="lead-website" placeholder="company.com"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Stage</label>
+          <select id="lead-stage">
+            <option>Lead Identified</option><option>Demo Scheduled</option><option>Demo Done</option><option>Closed Won</option><option>Closed Lost</option>
+          </select>
+        </div>
+        <div class="field"><label>Value ($)</label><input type="number" id="lead-value" placeholder="0" min="0"></div>
+      </div>
+      <div class="field"><label>Source</label><input type="text" id="lead-source" placeholder="e.g. LinkedIn, Cold Outreach, Referral..."></div>
+      <div class="field"><label>Notes</label><textarea id="lead-notes" placeholder="Add notes..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="delete-btn hidden" id="lead-del-btn" onclick="deleteLeadItem()">Delete Lead</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="cancel-btn" onclick="closeLeadModal()">Cancel</button>
+        <button class="save-btn" onclick="saveLeadItem()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TEAM MODAL -->
+<div class="modal-overlay" id="team-modal" onclick="if(event.target===this)closeTeamModal()">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2 id="team-modal-title">Add Member</h2>
+      <button class="modal-close" onclick="closeTeamModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="team-mem-id">
+      <div class="field"><label>Name *</label><input type="text" id="team-mem-name" placeholder="Full name..."></div>
+      <div class="field"><label>Role</label><input type="text" id="team-mem-role" placeholder="e.g. Head of Marketing..."></div>
+      <div class="field"><label>Email</label><input type="email" id="team-mem-email" placeholder="email@company.com"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="delete-btn hidden" id="team-del-btn" onclick="deleteTeamMember()">Remove</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="cancel-btn" onclick="closeTeamModal()">Cancel</button>
+        <button class="save-btn" onclick="saveTeamMember()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   SUPABASE CONFIG — paste your values here
+════════════════════════════════════════ */
+const SUPABASE_URL      = 'https://ipgwfeivywknnwcdxrdj.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_FgTaMkBJBbnV4QxnGOwKbA_1mkVMALD';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ════════════════════════════════════════
+   CONFIG
+════════════════════════════════════════ */
+const ALLOWED_EMAILS = [
+  'joelberman85@gmail.com',
+  'hillel@scaup.io',
+];
+
+const QUARTERS = ['Q2 2026', 'Q3 2026', 'Q4 2026'];
+const STAGES   = ['Lead Identified', 'Demo Scheduled', 'Demo Done', 'Closed Won', 'Closed Lost'];
+
+const STATUS_BADGE = {
+  'Planned':     'badge badge-gray',
+  'In Progress': 'badge badge-blue',
+  'Validating':  'badge badge-purple',
+  'Done':        'badge badge-green',
+  'Blocked':     'badge badge-red',
+};
+const PRIORITY_ICON = {
+  'High':   { sym: '↑', color: '#ef4444' },
+  'Medium': { sym: '→', color: '#f59e0b' },
+  'Low':    { sym: '↓', color: '#9ca3af' },
+};
+const STAGE_DOT = {
+  'Lead Identified': '#94a3b8', 'Demo Scheduled': '#4070F4',
+  'Demo Done': '#8b5cf6', 'Closed Won': '#16a34a', 'Closed Lost': '#ef4444',
+};
+const STAGE_BG = {
+  'Lead Identified': '#f8fafc', 'Demo Scheduled': '#f0f7ff',
+  'Demo Done': '#faf5ff', 'Closed Won': '#f0fdf4', 'Closed Lost': '#fff5f5',
+};
+const COLORS = ['#4070F4','#10b981','#f59e0b','#8b5cf6','#06b6d4','#ec4899','#6366f1','#0ea5e9','#14b8a6','#f97316'];
+const color  = s => { let h=0; for(let c of (s||'')) h=(h*31+c.charCodeAt(0))&0xffff; return COLORS[h%COLORS.length]; };
+const uid    = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36);
+const esc    = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmtMoney = n => { if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+(n/1e3).toFixed(1)+'K'; return '$'+n.toLocaleString(); };
+const fmtDate  = ts => { if(!ts) return ''; const d=Math.floor((Date.now()-new Date(ts).getTime())/86400000); if(d===0) return 'Today'; if(d===1) return 'Yesterday'; return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
+
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
+const state = { roadmap: [], pipeline: [], team: [], okrs: [], rmView: 'swimlane', filters: {}, search: '' };
+let editRm = null, editLead = null, editMember = null, editOkr = null;
+
+/* ════════════════════════════════════════
+   AUTH
+════════════════════════════════════════ */
+async function initAuth() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session) {
+    await showApp(session.user);
+  } else {
+    showLogin();
+  }
+  db.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      await showApp(session.user);
+    } else if (event === 'SIGNED_OUT') {
+      showLogin();
+    }
+  });
+}
+
+async function signInWithGoogle() {
+  await db.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin }
+  });
+}
+
+async function sendMagicLink() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) return;
+  const btn = document.getElementById('login-btn');
+  const msg = document.getElementById('login-msg');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  const { error } = await db.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } });
+  if (error) {
+    msg.textContent = error.message; msg.className = 'login-msg error';
+    btn.disabled = false; btn.textContent = 'Send Magic Link';
+  } else {
+    msg.textContent = '✓ Check your email for the magic link!'; msg.className = 'login-msg success';
+    btn.textContent = 'Email sent';
+  }
+}
+
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').classList.remove('ready');
+}
+
+async function showApp(user) {
+  const email = (user.email || '').toLowerCase();
+  if (!ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(email)) {
+    await db.auth.signOut();
+    const msg = document.getElementById('login-msg');
+    msg.textContent = 'Access denied. Contact Joel to request access.';
+    msg.className = 'login-msg error';
+    return;
+  }
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('ready');
+  document.getElementById('user-email').textContent = email;
+  const initials = email.slice(0,2).toUpperCase();
+  const av = document.getElementById('user-avatar');
+  av.textContent = initials;
+  av.style.background = color(email);
+  await loadData();
+  renderRoadmap(); renderPipeline(); renderBacklog(); renderTeam(); renderOKRs();
+  subscribeRealtime();
+}
+
+async function signOut() {
+  await db.auth.signOut();
+}
+
+/* ════════════════════════════════════════
+   DATA LAYER
+════════════════════════════════════════ */
+async function loadData() {
+  const [rm, pl, tm, ok] = await Promise.all([
+    db.from('roadmap_items').select('*').order('created_at'),
+    db.from('pipeline_leads').select('*').order('created_at'),
+    db.from('team_members').select('*').order('created_at'),
+    db.from('okrs').select('*').order('created_at'),
+  ]);
+  if (rm.error) console.error('roadmap error:', rm.error.message);
+  if (pl.error) console.error('pipeline error:', pl.error.message);
+  if (tm.error) console.error('team error:', tm.error.message);
+  if (ok.error) console.error('okrs error:', ok.error.message);
+  state.roadmap  = (rm.data  || []).map(dbToRm);
+  state.pipeline = (pl.data  || []).map(dbToLead);
+  state.team     = (tm.data  || []);
+  state.okrs     = (ok.data  || []).map(dbToOkr);
+}
+
+function dbToRm(r) {
+  return { id: r.id, title: r.title, quarter: r.quarter||'', type: r.type||'GTM',
+    status: r.status||'Planned', priority: r.priority||'Medium',
+    owner: r.owner||'', description: r.description||'', okrId: r.okr_id||'', createdAt: r.created_at };
+}
+function dbToOkr(r) {
+  return { id: r.id, title: r.title, quarter: r.quarter||'', owner: r.owner||'',
+    keyResults: Array.isArray(r.key_results) ? r.key_results : [], createdAt: r.created_at };
+}
+function dbToLead(r) {
+  return { id: r.id, company: r.company, contactName: r.contact_name||'',
+    email: r.email||'', website: r.website||'', stage: r.stage||'Lead Identified',
+    value: r.value||0, source: r.source||'', notes: r.notes||'', createdAt: r.created_at };
+}
+
+/* ════════════════════════════════════════
+   REAL-TIME
+════════════════════════════════════════ */
+function subscribeRealtime() {
+  db.channel('db-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'roadmap_items' }, async () => {
+      const { data } = await db.from('roadmap_items').select('*').order('created_at');
+      state.roadmap = (data||[]).map(dbToRm);
+      renderRoadmap(); renderBacklog(); updateBacklogCount();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pipeline_leads' }, async () => {
+      const { data } = await db.from('pipeline_leads').select('*').order('created_at');
+      state.pipeline = (data||[]).map(dbToLead);
+      renderPipeline();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'team_members' }, async () => {
+      const { data } = await db.from('team_members').select('*').order('created_at');
+      state.team = data||[];
+      renderTeam(); updateTeamCount();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'okrs' }, async () => {
+      const { data } = await db.from('okrs').select('*').order('created_at');
+      state.okrs = (data||[]).map(dbToOkr);
+      renderOKRs(); updateOkrCount();
+    })
+    .subscribe();
+}
+
+/* ════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════ */
+function switchView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view===v));
+  if (v==='roadmap')  renderRoadmap();
+  if (v==='pipeline') renderPipeline();
+  if (v==='backlog')  renderBacklog();
+  if (v==='team')     renderTeam();
+  if (v==='okrs')     renderOKRs();
+}
+
+/* ════════════════════════════════════════
+   ROADMAP — VIEW TOGGLE + FILTERS
+════════════════════════════════════════ */
+function setRmView(m) {
+  state.rmView = m;
+  document.getElementById('rm-swimlane').classList.toggle('hidden', m!=='swimlane');
+  document.getElementById('rm-timeline').classList.toggle('hidden', m!=='timeline');
+  document.getElementById('btn-swimlane').classList.toggle('active', m==='swimlane');
+  document.getElementById('btn-timeline').classList.toggle('active', m==='timeline');
+  renderRoadmap();
+}
+function setFilter(k,v) { state.filters[k]=v; renderRoadmap(); }
+function filteredRm() {
+  return state.roadmap.filter(i => {
+    if (!i.quarter) return false;
+    if (state.filters.status  && i.status  !== state.filters.status)  return false;
+    if (state.filters.quarter && i.quarter !== state.filters.quarter) return false;
+    if (state.filters.type    && i.type    !== state.filters.type)    return false;
+    return true;
+  });
+}
+const backlogFilters = {};
+function setBacklogFilter(k, v) { backlogFilters[k] = v; renderBacklog(); }
+function backlogItems() {
+  return state.roadmap.filter(i => {
+    if (backlogFilters.quarter === '__none__' && i.quarter) return false;
+    if (backlogFilters.quarter && backlogFilters.quarter !== '__none__' && i.quarter !== backlogFilters.quarter) return false;
+    if (backlogFilters.type   && i.type   !== backlogFilters.type)   return false;
+    if (backlogFilters.status && i.status !== backlogFilters.status) return false;
+    return true;
+  });
+}
+
+const okrFilters = {};
+function setOkrFilter(k, v) { okrFilters[k] = v; renderOKRs(); }
+function filteredOkrs() {
+  return state.okrs.filter(o => {
+    if (okrFilters.quarter && o.quarter !== okrFilters.quarter) return false;
+    if (okrFilters.owner   && o.owner   !== okrFilters.owner)  return false;
+    return true;
+  });
+}
+
+function updateBacklogCount() {
+  const el = document.getElementById('backlog-count');
+  if (el) el.textContent = backlogItems().length || '';
+}
+
+/* ════════════════════════════════════════
+   ROADMAP — RENDER SWIMLANE
+════════════════════════════════════════ */
+function renderRoadmap() {
+  updateBacklogCount();
+  if (state.rmView === 'timeline') { renderTimeline(); return; }
+  const grid = document.getElementById('swimlane-grid');
+  let h = '';
+  // Headers
+  h += '<div></div>';
+  QUARTERS.forEach(q => { h += `<div class="swimlane-col-header">${q}</div>`; });
+  // Rows
+  ['GTM','Product'].forEach(type => {
+    h += `<div class="swimlane-row-label">${type}</div>`;
+    QUARTERS.forEach(q => {
+      const cells = filteredRm().filter(i => i.quarter===q && i.type===type);
+      h += `<div class="swimlane-cell"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="onDragLeave(event,this)"
+        ondrop="onDropRm(event,'${q}','${type}');this.classList.remove('drag-over')">`;
+      cells.forEach(item => { h += rmCardHTML(item); });
+      h += '</div>';
+    });
+  });
+  grid.innerHTML = h;
+}
+
+function rmCardHTML(item) {
+  const p    = PRIORITY_ICON[item.priority] || PRIORITY_ICON.Medium;
+  const bcls = STATUS_BADGE[item.status]    || STATUS_BADGE.Planned;
+  const tcls = item.type==='GTM' ? 'type-gtm' : 'type-product';
+  const bg   = color(item.title);
+  const init = (item.title||'?').slice(0,2).toUpperCase();
+  return `<div class="rm-card" draggable="true"
+    ondragstart="onDragStart(event,'${item.id}','roadmap')"
+    ondragend="onDragEnd(event)"
+    ondragover="event.preventDefault();event.stopPropagation()"
+    onclick="openRmModal('${item.id}')">
+    <div class="rm-card-top">
+      <div class="rm-avatar" style="background:${bg}">${init}</div>
+      <div style="flex:1;min-width:0">
+        <div class="rm-card-title">${esc(item.title)}</div>
+        ${item.owner ? `<div class="rm-card-owner">${esc(item.owner)}</div>` : ''}
+      </div>
+      <span class="priority-arrow" style="color:${p.color}">${p.sym}</span>
+    </div>
+    <div class="rm-card-tags">
+      <span class="${bcls}">${item.status}</span>
+      <span class="type-badge ${tcls}" style="font-size:10px;padding:2px 7px">${item.type}</span>
+    </div>
+  </div>`;
+}
+
+function renderTimeline() {
+  const items = filteredRm();
+  const tbl   = document.getElementById('timeline-table');
+  let h = `<div class="timeline-header"><div>Item</div>${QUARTERS.map(q=>`<div>${q}</div>`).join('')}</div>`;
+  if (!items.length) { h += '<div style="padding:32px;text-align:center;color:var(--subtle);font-size:13px">No items</div>'; }
+  items.forEach(item => {
+    const p  = PRIORITY_ICON[item.priority] || PRIORITY_ICON.Medium;
+    const bc = STATUS_BADGE[item.status]    || STATUS_BADGE.Planned;
+    h += `<div class="timeline-row" onclick="openRmModal('${item.id}')">
+      <div class="tl-title">
+        <span class="tl-dot" style="background:${color(item.title)}"></span>
+        <div>
+          <div>${esc(item.title)}</div>
+          ${item.owner ? `<div style="font-size:11px;color:var(--subtle);font-weight:400">${esc(item.owner)}</div>` : ''}
+        </div>
+      </div>
+      ${QUARTERS.map(q => q===item.quarter
+        ? `<div><span class="${bc}">${item.status}</span></div>`
+        : `<div style="color:#d1d5db;font-size:18px;text-align:center">·</div>`
+      ).join('')}
+    </div>`;
+  });
+  tbl.innerHTML = h;
+}
+
+/* ════════════════════════════════════════
+   PIPELINE — RENDER
+════════════════════════════════════════ */
+function setSearch(v) { state.search=v; renderPipeline(); }
+
+function renderPipeline() {
+  const q   = state.search.toLowerCase();
+  const all = state.pipeline.filter(l =>
+    !q || l.company.toLowerCase().includes(q) ||
+    (l.contactName||'').toLowerCase().includes(q) ||
+    (l.source||'').toLowerCase().includes(q)
+  );
+  const total     = all.filter(l => l.stage !== 'Closed Lost');
+  const pipeVal   = total.filter(l => l.stage !== 'Closed Won').reduce((s,l) => s+(+l.value||0), 0);
+  const wonVal    = all.filter(l => l.stage === 'Closed Won').reduce((s,l) => s+(+l.value||0), 0);
+  const closed    = all.filter(l => l.stage === 'Closed Won' || l.stage === 'Closed Lost');
+  const winRate   = closed.length ? Math.round(all.filter(l=>l.stage==='Closed Won').length/closed.length*100) : 0;
+  document.getElementById('stat-total').textContent    = total.length;
+  document.getElementById('stat-pipeline').textContent = fmtMoney(pipeVal);
+  document.getElementById('stat-won').textContent      = fmtMoney(wonVal);
+  document.getElementById('stat-wr').textContent       = winRate + '%';
+
+  const board = document.getElementById('pipeline-board');
+  let h = '';
+  STAGES.forEach(stage => {
+    const sl = all.filter(l => l.stage === stage);
+    h += `<div class="pipeline-lane" style="background:${STAGE_BG[stage]||'white'}">
+      <div class="lane-header">
+        <div class="lane-dot" style="background:${STAGE_DOT[stage]}"></div>
+        <div class="lane-title">${stage}</div>
+        <div class="lane-count">${sl.length}</div>
+      </div>
+      <div class="lane-cards"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="onDragLeave(event,this)"
+        ondrop="onDropLead(event,'${stage}');this.classList.remove('drag-over')">`;
+    sl.forEach(l => { h += leadCardHTML(l, stage==='Closed Lost'); });
+    h += '</div></div>';
+  });
+  board.innerHTML = h;
+}
+
+function leadCardHTML(l, lost) {
+  const val  = +l.value || 0;
+  const init = (l.company||'?').slice(0,2).toUpperCase();
+  const bg   = color(l.company||'');
+  const date = fmtDate(l.createdAt);
+  return `<div class="lead-card${lost?' lost':''}" draggable="true"
+    ondragstart="onDragStart(event,'${l.id}','pipeline')"
+    ondragend="onDragEnd(event)"
+    ondragover="event.preventDefault();event.stopPropagation()"
+    onclick="openLeadModal('${l.id}')">
+    <div class="lead-top">
+      <div class="lead-avatar" style="background:${bg}">${init}</div>
+      <div style="min-width:0">
+        <div class="lead-company">${esc(l.company)}</div>
+        ${l.contactName ? `<div class="lead-contact">${esc(l.contactName)}</div>` : ''}
+      </div>
+    </div>
+    ${val ? `<div class="lead-value">${fmtMoney(val)}</div>` : ''}
+    <div class="lead-footer">
+      ${l.source ? `<span class="source-badge">${esc(l.source)}</span>` : '<span></span>'}
+      ${date ? `<span class="lead-date">${date}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════
+   DRAG & DROP
+════════════════════════════════════════ */
+function onDragStart(e, id, kind) {
+  e.dataTransfer.setData('text/plain', id+'|'+kind);
+  e.dataTransfer.effectAllowed = 'move';
+  document.body.classList.add('is-dragging');
+  setTimeout(() => { try { e.target.classList.add('dragging'); } catch(_){} }, 0);
+}
+function onDragEnd(e) {
+  try { e.target.classList.remove('dragging'); } catch(_) {}
+  document.body.classList.remove('is-dragging');
+}
+function onDragLeave(e, el) {
+  if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over');
+}
+function onDropLead(e, stage) {
+  e.preventDefault(); e.stopPropagation();
+  const raw = e.dataTransfer.getData('text/plain'); if (!raw) return;
+  const [id, kind] = raw.split('|'); if (kind !== 'pipeline') return;
+  const lead = state.pipeline.find(l => l.id===id); if (!lead) return;
+  lead.stage = stage;
+  db.from('pipeline_leads').update({ stage }).eq('id', id).then(() => renderPipeline());
+}
+function onDropRm(e, quarter, type) {
+  e.preventDefault(); e.stopPropagation();
+  const raw = e.dataTransfer.getData('text/plain'); if (!raw) return;
+  const [id, kind] = raw.split('|'); if (kind !== 'roadmap') return;
+  const item = state.roadmap.find(i => i.id===id); if (!item) return;
+  item.quarter = quarter; item.type = type;
+  db.from('roadmap_items').update({ quarter, type }).eq('id', id).then(() => renderRoadmap());
+}
+
+/* ════════════════════════════════════════
+   ROADMAP MODAL
+════════════════════════════════════════ */
+function populateOwnerSelect(currentValue) {
+  const sel = document.getElementById('rm-owner');
+  sel.innerHTML = '<option value="">— Unassigned —</option>';
+  state.team.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.name; opt.textContent = m.name + (m.role ? ' · '+m.role : '');
+    sel.appendChild(opt);
+  });
+  if (currentValue && !state.team.find(m => m.name===currentValue)) {
+    const opt = document.createElement('option');
+    opt.value = currentValue; opt.textContent = currentValue;
+    sel.appendChild(opt);
+  }
+  sel.value = currentValue || '';
+}
+
+function populateOkrSelect(currentValue) {
+  const sel = document.getElementById('rm-okr');
+  sel.innerHTML = '<option value="">— Not linked to an OKR —</option>';
+  state.okrs.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.id; opt.textContent = (o.quarter ? o.quarter+' · ' : '') + o.title;
+    sel.appendChild(opt);
+  });
+  sel.value = currentValue || '';
+}
+
+function openRmModal(id, fromBacklog) {
+  id = id||null; editRm = id;
+  const delBtn = document.getElementById('rm-del-btn');
+  if (id) {
+    const i = state.roadmap.find(x => x.id===id); if (!i) return;
+    document.getElementById('rm-modal-title').textContent = i.quarter ? 'Edit Item' : 'Edit Backlog Item';
+    document.getElementById('rm-id').value       = i.id;
+    document.getElementById('rm-title').value    = i.title;
+    document.getElementById('rm-quarter').value  = i.quarter||'';
+    document.getElementById('rm-type').value     = i.type;
+    document.getElementById('rm-status').value   = i.status;
+    document.getElementById('rm-priority').value = i.priority;
+    populateOwnerSelect(i.owner||'');
+    populateOkrSelect(i.okrId||'');
+    document.getElementById('rm-desc').value     = i.description||'';
+    delBtn.classList.remove('hidden');
+  } else {
+    document.getElementById('rm-modal-title').textContent = fromBacklog ? 'Add to Backlog' : 'Add Item';
+    ['rm-id','rm-title','rm-desc'].forEach(x => document.getElementById(x).value='');
+    document.getElementById('rm-quarter').value  = fromBacklog ? '' : 'Q2 2026';
+    document.getElementById('rm-type').value     = 'GTM';
+    document.getElementById('rm-status').value   = 'Planned';
+    document.getElementById('rm-priority').value = 'Medium';
+    populateOwnerSelect('');
+    populateOkrSelect('');
+    delBtn.classList.add('hidden');
+  }
+  document.getElementById('rm-modal').classList.add('open');
+  setTimeout(() => document.getElementById('rm-title').focus(), 60);
+}
+function closeRmModal() { document.getElementById('rm-modal').classList.remove('open'); editRm=null; }
+
+async function saveRmItem() {
+  const title = document.getElementById('rm-title').value.trim();
+  if (!title) { document.getElementById('rm-title').style.borderColor='#ef4444'; return; }
+  document.getElementById('rm-title').style.borderColor='';
+  const wasBacklog = editRm && !state.roadmap.find(i=>i.id===editRm)?.quarter;
+  const okrVal = document.getElementById('rm-okr').value;
+  const d = {
+    title,
+    quarter:     document.getElementById('rm-quarter').value,
+    type:        document.getElementById('rm-type').value,
+    status:      document.getElementById('rm-status').value,
+    priority:    document.getElementById('rm-priority').value,
+    owner:       document.getElementById('rm-owner').value,
+    description: document.getElementById('rm-desc').value.trim(),
+    okr_id:      okrVal || null,
+  };
+  if (editRm) {
+    await db.from('roadmap_items').update(d).eq('id', editRm);
+  } else {
+    await db.from('roadmap_items').insert({ ...d, id: uid() });
+  }
+  closeRmModal();
+  const { data } = await db.from('roadmap_items').select('*').order('created_at');
+  state.roadmap = (data||[]).map(dbToRm);
+  updateBacklogCount();
+  renderRoadmap();
+  renderBacklog();
+}
+
+async function deleteRmItem() {
+  if (!editRm || !confirm('Delete this item?')) return;
+  await db.from('roadmap_items').delete().eq('id', editRm);
+  state.roadmap = state.roadmap.filter(i => i.id!==editRm);
+  closeRmModal(); updateBacklogCount(); renderRoadmap(); renderBacklog();
+}
+
+/* ════════════════════════════════════════
+   LEAD MODAL
+════════════════════════════════════════ */
+function openLeadModal(id) {
+  id = id||null; editLead = id;
+  const delBtn = document.getElementById('lead-del-btn');
+  if (id) {
+    const l = state.pipeline.find(x => x.id===id); if (!l) return;
+    document.getElementById('lead-modal-title').textContent = 'Edit Lead';
+    document.getElementById('lead-id').value      = l.id;
+    document.getElementById('lead-company').value = l.company||'';
+    document.getElementById('lead-contact').value = l.contactName||'';
+    document.getElementById('lead-email').value   = l.email||'';
+    document.getElementById('lead-website').value = l.website||'';
+    document.getElementById('lead-stage').value   = l.stage||'Lead Identified';
+    document.getElementById('lead-value').value   = l.value||'';
+    document.getElementById('lead-source').value  = l.source||'';
+    document.getElementById('lead-notes').value   = l.notes||'';
+    delBtn.classList.remove('hidden');
+  } else {
+    ['lead-id','lead-company','lead-contact','lead-email','lead-website','lead-value','lead-source','lead-notes'].forEach(x => document.getElementById(x).value='');
+    document.getElementById('lead-modal-title').textContent = 'Add Lead';
+    document.getElementById('lead-stage').value = 'Lead Identified';
+    delBtn.classList.add('hidden');
+  }
+  document.getElementById('lead-modal').classList.add('open');
+  setTimeout(() => document.getElementById('lead-company').focus(), 60);
+}
+function closeLeadModal() { document.getElementById('lead-modal').classList.remove('open'); editLead=null; }
+
+async function saveLeadItem() {
+  const company = document.getElementById('lead-company').value.trim();
+  if (!company) { document.getElementById('lead-company').style.borderColor='#ef4444'; return; }
+  document.getElementById('lead-company').style.borderColor='';
+  const d = {
+    company,
+    contact_name: document.getElementById('lead-contact').value.trim(),
+    email:        document.getElementById('lead-email').value.trim(),
+    website:      document.getElementById('lead-website').value.trim(),
+    stage:        document.getElementById('lead-stage').value,
+    value:        +document.getElementById('lead-value').value||0,
+    source:       document.getElementById('lead-source').value.trim(),
+    notes:        document.getElementById('lead-notes').value.trim(),
+  };
+  if (editLead) {
+    await db.from('pipeline_leads').update(d).eq('id', editLead);
+  } else {
+    await db.from('pipeline_leads').insert({ ...d, id: uid() });
+  }
+  closeLeadModal();
+  const { data } = await db.from('pipeline_leads').select('*').order('created_at');
+  state.pipeline = (data||[]).map(dbToLead);
+  renderPipeline();
+}
+
+async function deleteLeadItem() {
+  if (!editLead || !confirm('Delete this lead?')) return;
+  await db.from('pipeline_leads').delete().eq('id', editLead);
+  state.pipeline = state.pipeline.filter(l => l.id!==editLead);
+  closeLeadModal(); renderPipeline();
+}
+
+/* ════════════════════════════════════════
+   BACKLOG
+════════════════════════════════════════ */
+function renderBacklog() {
+  const items = backlogItems();
+  const wrap  = document.getElementById('backlog-wrap');
+  updateBacklogCount();
+  if (!items.length) {
+    wrap.innerHTML = `<div class="backlog-empty">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h10M4 18h6"/></svg>
+      <span>No backlog items yet</span>
+      <span style="color:#d1d5db;font-size:12px">Click "Add to Backlog" to capture ideas without a quarter</span>
+    </div>`; return;
+  }
+  let h = `<div class="backlog-table">
+    <div class="backlog-header"><div>Item</div><div>Quarter</div><div>Type</div><div>Status</div><div>Priority</div></div>`;
+  items.forEach(item => {
+    const p    = PRIORITY_ICON[item.priority] || PRIORITY_ICON.Medium;
+    const bcls = STATUS_BADGE[item.status]    || STATUS_BADGE.Planned;
+    const tcls = item.type==='GTM' ? 'type-gtm' : 'type-product';
+    h += `<div class="backlog-row" onclick="openRmModal('${item.id}')">
+      <div class="bl-title"><div>
+        <div>${esc(item.title)}</div>
+        ${item.owner ? `<div class="bl-title-sub">${esc(item.owner)}</div>` : ''}
+      </div></div>
+      <div style="font-size:12px;color:var(--muted)">${item.quarter || '—'}</div>
+      <div><span class="type-badge ${tcls}" style="font-size:11px">${item.type}</span></div>
+      <div><span class="${bcls}">${item.status}</span></div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span style="color:${p.color};font-weight:700;font-size:14px">${p.sym}</span>
+        <span style="font-size:12px;color:var(--muted)">${item.priority}</span>
+      </div>
+    </div>`;
+  });
+  h += '</div>';
+  wrap.innerHTML = h;
+}
+
+/* ════════════════════════════════════════
+   TEAM
+════════════════════════════════════════ */
+function updateTeamCount() {
+  const el = document.getElementById('team-count');
+  if (el) el.textContent = state.team.length || '';
+}
+
+function renderTeam() {
+  updateTeamCount();
+  const grid = document.getElementById('team-grid'); if (!grid) return;
+  if (!state.team.length) {
+    grid.innerHTML = `<div class="team-empty" style="grid-column:1/-1">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span>No team members yet</span>
+      <span style="color:#d1d5db;font-size:12px">Click "Add Member" to get started</span>
+    </div>`; return;
+  }
+  grid.innerHTML = state.team.map(m => {
+    const bg=color(m.name), init=(m.name||'?').slice(0,2).toUpperCase();
+    return `<div class="team-card" onclick="openTeamModal('${m.id}')">
+      <div class="team-avatar-lg" style="background:${bg}">${init}</div>
+      <div class="team-info">
+        <div class="team-name">${esc(m.name)}</div>
+        ${m.role  ? `<div class="team-role">${esc(m.role)}</div>`   : ''}
+        ${m.email ? `<div class="team-email">${esc(m.email)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openTeamModal(id) {
+  id=id||null; editMember=id;
+  const delBtn = document.getElementById('team-del-btn');
+  if (id) {
+    const m=state.team.find(x=>x.id===id); if(!m) return;
+    document.getElementById('team-modal-title').textContent='Edit Member';
+    document.getElementById('team-mem-id').value   =m.id;
+    document.getElementById('team-mem-name').value =m.name;
+    document.getElementById('team-mem-role').value =m.role||'';
+    document.getElementById('team-mem-email').value=m.email||'';
+    delBtn.classList.remove('hidden');
+  } else {
+    document.getElementById('team-modal-title').textContent='Add Member';
+    ['team-mem-id','team-mem-name','team-mem-role','team-mem-email'].forEach(x=>document.getElementById(x).value='');
+    delBtn.classList.add('hidden');
+  }
+  document.getElementById('team-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('team-mem-name').focus(),60);
+}
+function closeTeamModal() { document.getElementById('team-modal').classList.remove('open'); editMember=null; }
+
+async function saveTeamMember() {
+  const name=document.getElementById('team-mem-name').value.trim();
+  if (!name) { document.getElementById('team-mem-name').style.borderColor='#ef4444'; return; }
+  document.getElementById('team-mem-name').style.borderColor='';
+  const d = { name, role: document.getElementById('team-mem-role').value.trim(), email: document.getElementById('team-mem-email').value.trim() };
+  if (editMember) {
+    await db.from('team_members').update(d).eq('id', editMember);
+  } else {
+    await db.from('team_members').insert({ ...d, id: uid() });
+  }
+  closeTeamModal();
+  const { data } = await db.from('team_members').select('*').order('created_at');
+  state.team = data||[];
+  renderTeam();
+}
+
+async function deleteTeamMember() {
+  if (!editMember || !confirm('Remove this team member?')) return;
+  await db.from('team_members').delete().eq('id', editMember);
+  state.team = state.team.filter(m=>m.id!==editMember);
+  closeTeamModal(); renderTeam();
+}
+
+/* ════════════════════════════════════════
+   OKRs
+════════════════════════════════════════ */
+function updateOkrCount() {
+  const el = document.getElementById('okr-count');
+  if (el) el.textContent = state.okrs.length || '';
+}
+
+function renderOKRs() {
+  updateOkrCount();
+  const grid = document.getElementById('okr-grid'); if (!grid) return;
+  // populate owner filter from unique owners in okrs
+  const ownerSel = document.getElementById('okr-filter-owner');
+  if (ownerSel) {
+    const cur = ownerSel.value;
+    const owners = [...new Set(state.okrs.map(o => o.owner).filter(Boolean))];
+    ownerSel.innerHTML = '<option value="">All Owners</option>' +
+      owners.map(o => `<option${o===cur?' selected':''}>${esc(o)}</option>`).join('');
+  }
+  const items = filteredOkrs();
+  if (!state.okrs.length) {
+    grid.innerHTML = `<div class="okr-empty">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      <span>No objectives yet</span>
+      <span style="color:#d1d5db;font-size:12px">Click "Add Objective" to define your OKRs</span>
+    </div>`; return;
+  }
+  if (!items.length) {
+    grid.innerHTML = `<div class="okr-empty">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
+      <span>No objectives match this filter</span>
+    </div>`; return;
+  }
+  grid.innerHTML = items.map(o => okrCardHTML(o)).join('');
+}
+
+function okrCardHTML(o) {
+  const krs    = o.keyResults || [];
+  const done   = krs.filter(k => k.done).length;
+  const pct    = krs.length ? Math.round(done/krs.length*100) : 0;
+  const bg     = color(o.title);
+  const linked = state.roadmap.filter(i => i.okrId === o.id);
+  const krHTML = krs.length ? krs.map(k =>
+    `<div class="kr-item${k.done?' done':''}">
+      <div class="kr-check${k.done?' checked':''}" onclick="event.stopPropagation();toggleKr('${o.id}','${k.id}')"></div>
+      <span>${esc(k.text)}</span>
+    </div>`).join('') : '<div style="font-size:12px;color:var(--subtle);padding:4px 0">No key results yet</div>';
+  const chipsHTML = linked.length
+    ? linked.map(i => `<span class="okr-chip">${esc(i.title.length>30?i.title.slice(0,30)+'…':i.title)}</span>`).join('')
+    : '<span style="font-size:11px;color:var(--subtle)">No items linked</span>';
+  return `<div class="okr-card" onclick="openOkrModal('${o.id}')">
+    <div class="okr-card-header">
+      <div class="okr-icon" style="background:${bg}">🎯</div>
+      <div style="flex:1;min-width:0">
+        <div class="okr-title">${esc(o.title)}</div>
+        <div class="okr-meta" style="margin-top:5px">
+          ${o.quarter ? `<span class="badge badge-blue" style="font-size:10px">${o.quarter}</span>` : ''}
+          ${o.owner   ? `<span class="badge badge-gray" style="font-size:10px">${esc(o.owner)}</span>` : ''}
+        </div>
+      </div>
+    </div>
+    ${krs.length ? `<div>
+      <div class="okr-progress-label">
+        <span>${done}/${krs.length} key results</span>
+        <span style="font-weight:600;color:var(--brand)">${pct}%</span>
+      </div>
+      <div class="okr-progress-bar"><div class="okr-progress-fill" style="width:${pct}%"></div></div>
+    </div>` : ''}
+    <div class="kr-list">${krHTML}</div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Linked items (${linked.length})</div>
+      <div class="okr-connected">${chipsHTML}</div>
+    </div>
+  </div>`;
+}
+
+async function toggleKr(okrId, krId) {
+  const o = state.okrs.find(x => x.id===okrId); if (!o) return;
+  const krs = o.keyResults.map(k => k.id===krId ? {...k, done: !k.done} : k);
+  await db.from('okrs').update({ key_results: krs }).eq('id', okrId);
+  o.keyResults = krs;
+  renderOKRs();
+}
+
+function populateOkrOwnerSelect(currentValue) {
+  const sel = document.getElementById('okr-owner');
+  sel.innerHTML = '<option value="">— Unassigned —</option>';
+  state.team.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.name; opt.textContent = m.name + (m.role ? ' · '+m.role : '');
+    sel.appendChild(opt);
+  });
+  sel.value = currentValue || '';
+}
+
+function addKrRow(text) {
+  const editor = document.getElementById('kr-editor');
+  const id = uid();
+  const row = document.createElement('div');
+  row.className = 'kr-editor-row';
+  row.dataset.krid = id;
+  row.dataset.done = 'false';
+  row.innerHTML = `<input type="text" placeholder="Key result..." value="${esc(text||'')}">
+    <button class="kr-remove-btn" onclick="this.parentElement.remove()" title="Remove">×</button>`;
+  editor.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+function openOkrModal(id) {
+  id = id||null; editOkr = id;
+  const delBtn = document.getElementById('okr-del-btn');
+  document.getElementById('kr-editor').innerHTML = '';
+  if (id) {
+    const o = state.okrs.find(x => x.id===id); if (!o) return;
+    document.getElementById('okr-modal-title').textContent = 'Edit Objective';
+    document.getElementById('okr-id').value      = o.id;
+    document.getElementById('okr-title').value   = o.title;
+    document.getElementById('okr-quarter').value = o.quarter||'';
+    populateOkrOwnerSelect(o.owner||'');
+    (o.keyResults||[]).forEach(k => {
+      const editor = document.getElementById('kr-editor');
+      const row = document.createElement('div');
+      row.className = 'kr-editor-row';
+      row.dataset.krid = k.id;
+      row.dataset.done = k.done ? 'true' : 'false';
+      row.innerHTML = `<input type="text" placeholder="Key result..." value="${esc(k.text||'')}">
+        <button class="kr-remove-btn" onclick="this.parentElement.remove()" title="Remove">×</button>`;
+      editor.appendChild(row);
+    });
+    delBtn.classList.remove('hidden');
+  } else {
+    document.getElementById('okr-modal-title').textContent = 'Add Objective';
+    document.getElementById('okr-id').value      = '';
+    document.getElementById('okr-title').value   = '';
+    document.getElementById('okr-quarter').value = '';
+    populateOkrOwnerSelect('');
+    delBtn.classList.add('hidden');
+  }
+  document.getElementById('okr-modal').classList.add('open');
+  setTimeout(() => document.getElementById('okr-title').focus(), 60);
+}
+function closeOkrModal() { document.getElementById('okr-modal').classList.remove('open'); editOkr=null; }
+
+async function saveOkrItem() {
+  const btn = document.querySelector('#okr-modal .save-btn');
+  const origText = btn.textContent;
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    const title = document.getElementById('okr-title').value.trim();
+    if (!title) {
+      document.getElementById('okr-title').style.borderColor = '#ef4444';
+      btn.textContent = origText; btn.disabled = false; return;
+    }
+    document.getElementById('okr-title').style.borderColor = '';
+    const rows = document.querySelectorAll('#kr-editor .kr-editor-row');
+    const keyResults = [];
+    rows.forEach(row => {
+      const inp = row.querySelector('input');
+      const text = inp ? inp.value.trim() : '';
+      if (text) keyResults.push({ id: row.dataset.krid || uid(), text, done: row.dataset.done === 'true' });
+    });
+    const d = {
+      title,
+      quarter:     document.getElementById('okr-quarter').value || '',
+      owner:       document.getElementById('okr-owner').value   || '',
+      key_results: keyResults,
+    };
+    let res;
+    if (editOkr) {
+      res = await db.from('okrs').update(d).eq('id', editOkr).select();
+    } else {
+      res = await db.from('okrs').insert(d).select();
+    }
+    if (res.error) {
+      alert('Save failed: ' + res.error.message);
+      btn.textContent = origText; btn.disabled = false; return;
+    }
+    closeOkrModal();
+    const { data, error: fe } = await db.from('okrs').select('*').order('created_at');
+    if (fe) { alert('Reload failed: ' + fe.message); return; }
+    state.okrs = (data||[]).map(dbToOkr);
+    updateOkrCount(); renderOKRs();
+  } catch(e) {
+    alert('Unexpected error: ' + e.message);
+    btn.textContent = origText; btn.disabled = false;
+  }
+}
+
+async function deleteOkrItem() {
+  if (!editOkr || !confirm('Delete this objective? Items linked to it will be unlinked.')) return;
+  await db.from('roadmap_items').update({ okr_id: null }).eq('okr_id', editOkr);
+  await db.from('okrs').delete().eq('id', editOkr);
+  state.okrs = state.okrs.filter(o => o.id!==editOkr);
+  state.roadmap.forEach(i => { if (i.okrId===editOkr) i.okrId=''; });
+  closeOkrModal(); updateOkrCount(); renderOKRs();
+}
+
+/* ════════════════════════════════════════
+   EXPORT
+════════════════════════════════════════ */
+function exportData() {
+  const out = { exportedAt: new Date().toISOString(), roadmap: state.roadmap, pipeline: state.pipeline, team: state.team };
+  const a   = Object.assign(document.createElement('a'), {
+    href:     URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'})),
+    download: 'scaup-gtm-'+new Date().toISOString().split('T')[0]+'.json',
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ════════════════════════════════════════
+   KEYBOARD
+════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') { closeRmModal(); closeLeadModal(); closeTeamModal(); closeOkrModal(); }
+});
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+initAuth();
+</script>
+</body>
+</html>
