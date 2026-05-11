@@ -176,6 +176,18 @@ body { background: var(--bg); color: var(--text); height: 100vh; display: flex; 
   cursor: pointer; outline: none;
 }
 .filter:focus { border-color: var(--brand); }
+.multi-select-wrap { position: relative; display: inline-block; }
+.multi-select-btn { text-align: left; min-width: 110px; }
+.multi-select-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 100;
+  background: white; border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px; min-width: 150px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.multi-select-dropdown label {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 4px; font-size: 12px; cursor: pointer; border-radius: 4px;
+}
+.multi-select-dropdown label:hover { background: var(--surface); }
 
 /* ── Stats bar ── */
 .stats-bar { display: flex; gap: 20px; align-items: center; }
@@ -585,10 +597,16 @@ body { background: var(--bg); color: var(--text); height: 100vh; display: flex; 
               <button class="toggle-btn" id="btn-timeline" onclick="setRmView('timeline')">Timeline</button>
             </div>
             <div class="filters">
-              <select class="filter" onchange="setFilter('status',this.value)">
-                <option value="">All Status</option>
-                <option>Planned</option><option>In Progress</option><option>Validating</option><option>Done</option><option>Blocked</option>
-              </select>
+              <div class="multi-select-wrap" id="status-filter-wrap">
+                <button class="filter multi-select-btn" onclick="toggleStatusDropdown(event)" id="status-filter-btn">All Status</button>
+                <div class="multi-select-dropdown" id="status-dropdown" style="display:none">
+                  <label><input type="checkbox" value="Planned" onchange="toggleStatusFilter(this)"> Planned</label>
+                  <label><input type="checkbox" value="In Progress" onchange="toggleStatusFilter(this)"> In Progress</label>
+                  <label><input type="checkbox" value="Validating" onchange="toggleStatusFilter(this)"> Validating</label>
+                  <label><input type="checkbox" value="Done" onchange="toggleStatusFilter(this)"> Done</label>
+                  <label><input type="checkbox" value="Blocked" onchange="toggleStatusFilter(this)"> Blocked</label>
+                </div>
+              </div>
               <select class="filter" onchange="setFilter('quarter',this.value)">
                 <option value="">All Quarters</option>
                 <option>Q2 2026</option><option>Q3 2026</option><option>Q4 2026</option>
@@ -1074,10 +1092,26 @@ function setRmView(m) {
   renderRoadmap();
 }
 function setFilter(k,v) { state.filters[k]=v; renderRoadmap(); }
+function toggleStatusDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('status-dropdown');
+  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+function toggleStatusFilter(cb) {
+  const selected = Array.from(document.querySelectorAll('#status-dropdown input:checked')).map(i=>i.value);
+  state.filters.statuses = selected;
+  const btn = document.getElementById('status-filter-btn');
+  btn.textContent = selected.length === 0 ? 'All Status' : selected.join(', ');
+  renderRoadmap();
+}
+document.addEventListener('click', () => {
+  const dd = document.getElementById('status-dropdown');
+  if (dd) dd.style.display = 'none';
+});
 function filteredRm() {
   return state.roadmap.filter(i => {
     if (!i.quarter) return false;
-    if (state.filters.status  && i.status  !== state.filters.status)  return false;
+    if (state.filters.statuses && state.filters.statuses.length && !state.filters.statuses.includes(i.status)) return false;
     if (state.filters.quarter && i.quarter !== state.filters.quarter) return false;
     if (state.filters.type    && i.type    !== state.filters.type)    return false;
     return true;
@@ -1430,15 +1464,21 @@ async function saveLeadItem() {
     source:       document.getElementById('lead-source').value.trim(),
     notes:        document.getElementById('lead-notes').value.trim(),
   };
-  if (editLead) {
-    await db.from('pipeline_leads').update(d).eq('id', editLead);
-  } else {
-    await db.from('pipeline_leads').insert({ ...d, id: uid() });
+  try {
+    if (editLead) {
+      const { error } = await db.from('pipeline_leads').update(d).eq('id', editLead);
+      if (error) throw error;
+    } else {
+      const { error } = await db.from('pipeline_leads').insert({ ...d, id: uid() });
+      if (error) throw error;
+    }
+    closeLeadModal();
+    const { data } = await db.from('pipeline_leads').select('*').order('created_at');
+    state.pipeline = (data||[]).map(dbToLead);
+    renderPipeline();
+  } catch (err) {
+    alert('Error saving lead: ' + err.message);
   }
-  closeLeadModal();
-  const { data } = await db.from('pipeline_leads').select('*').order('created_at');
-  state.pipeline = (data||[]).map(dbToLead);
-  renderPipeline();
 }
 
 async function deleteLeadItem() {
