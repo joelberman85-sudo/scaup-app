@@ -1272,7 +1272,7 @@ function leadCardHTML(l, lost) {
   return `<div class="lead-card${lost?' lost':''}" draggable="true"
     ondragstart="onDragStart(event,'${l.id}','pipeline')"
     ondragend="onDragEnd(event)"
-    ondragover="event.preventDefault();event.stopPropagation()"
+    ondragover="event.preventDefault()"
     onclick="openLeadModal('${l.id}')">
     <div class="lead-top">
       <div class="lead-avatar" style="background:${bg}">${init}</div>
