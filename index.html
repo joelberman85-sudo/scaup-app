@@ -802,12 +802,13 @@ body { background: var(--bg); color: var(--text); height: 100vh; display: flex; 
           Add key result
         </button>
       </div>
+      <div id="okr-error" style="display:none;color:#ef4444;font-size:13px;margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:8px;"></div>
     </div>
     <div class="modal-footer">
       <button class="delete-btn hidden" id="okr-del-btn" onclick="deleteOkrItem()">Delete Objective</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="cancel-btn" onclick="closeOkrModal()">Cancel</button>
-        <button class="save-btn" onclick="saveOkrItem()">Save</button>
+        <button class="save-btn" id="okr-save-btn" onclick="saveOkrItem()">Save</button>
       </div>
     </div>
   </div>
@@ -842,12 +843,13 @@ body { background: var(--bg); color: var(--text); height: 100vh; display: flex; 
       </div>
       <div class="field"><label>Source</label><input type="text" id="lead-source" placeholder="e.g. LinkedIn, Cold Outreach, Referral..."></div>
       <div class="field"><label>Notes</label><textarea id="lead-notes" placeholder="Add notes..."></textarea></div>
+      <div id="lead-error" style="display:none;color:#ef4444;font-size:13px;margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:8px;"></div>
     </div>
     <div class="modal-footer">
       <button class="delete-btn hidden" id="lead-del-btn" onclick="deleteLeadItem()">Delete Lead</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="cancel-btn" onclick="closeLeadModal()">Cancel</button>
-        <button class="save-btn" onclick="saveLeadItem()">Save</button>
+        <button class="save-btn" id="lead-save-btn" onclick="saveLeadItem()">Save</button>
       </div>
     </div>
   </div>
@@ -1481,7 +1483,13 @@ async function saveLeadItem() {
     source:       document.getElementById('lead-source').value.trim(),
     notes:        document.getElementById('lead-notes').value.trim(),
   };
+  const errEl = document.getElementById('lead-error');
+  const saveBtn = document.getElementById('lead-save-btn');
+  errEl.style.display = 'none';
+  saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
   try {
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) throw new Error('Not logged in — please refresh and sign in again.');
     if (editLead) {
       const { error } = await db.from('pipeline_leads').update(d).eq('id', editLead);
       if (error) throw error;
@@ -1494,7 +1502,10 @@ async function saveLeadItem() {
     state.pipeline = (data||[]).map(dbToLead);
     renderPipeline();
   } catch (err) {
-    alert('Error saving lead: ' + err.message);
+    errEl.textContent = 'Error: ' + (err.message || JSON.stringify(err));
+    errEl.style.display = 'block';
+  } finally {
+    saveBtn.disabled = false; saveBtn.textContent = 'Save';
   }
 }
 
@@ -1792,16 +1803,22 @@ async function saveOkrItem() {
       res = await db.from('okrs').insert(d).select();
     }
     if (res.error) {
-      alert('Save failed: ' + res.error.message);
+      document.getElementById('okr-error').textContent = 'Error: ' + res.error.message;
+      document.getElementById('okr-error').style.display = 'block';
       btn.textContent = origText; btn.disabled = false; return;
     }
     closeOkrModal();
     const { data, error: fe } = await db.from('okrs').select('*').order('created_at');
-    if (fe) { alert('Reload failed: ' + fe.message); return; }
+    if (fe) {
+      document.getElementById('okr-error').textContent = 'Reload failed: ' + fe.message;
+      document.getElementById('okr-error').style.display = 'block';
+      return;
+    }
     state.okrs = (data||[]).map(dbToOkr);
     updateOkrCount(); renderOKRs();
   } catch(e) {
-    alert('Unexpected error: ' + e.message);
+    document.getElementById('okr-error').textContent = 'Unexpected error: ' + (e.message || JSON.stringify(e));
+    document.getElementById('okr-error').style.display = 'block';
     btn.textContent = origText; btn.disabled = false;
   }
 }
