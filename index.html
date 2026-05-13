@@ -892,6 +892,22 @@ const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
 
+// Refresh session whenever the tab comes back into focus
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') db.auth.getSession();
+});
+
+// Ensure session is valid before any save — refresh if expired
+async function ensureSession() {
+  let { data: { session } } = await db.auth.getSession();
+  if (!session) {
+    const { data: refreshed } = await db.auth.refreshSession();
+    session = refreshed?.session;
+  }
+  if (!session) throw new Error('Session expired — please sign out and back in.');
+  return session;
+}
+
 /* ════════════════════════════════════════
    CONFIG
 ════════════════════════════════════════ */
@@ -1411,6 +1427,7 @@ async function saveRmItem() {
   errEl.style.display = 'none';
   saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
   try {
+    await ensureSession();
     if (editRm) {
       const { error } = await db.from('roadmap_items').update(d).eq('id', editRm);
       if (error) throw error;
@@ -1488,8 +1505,7 @@ async function saveLeadItem() {
   errEl.style.display = 'none';
   saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
   try {
-    const { data: { session } } = await db.auth.getSession();
-    if (!session) throw new Error('Not logged in — please refresh and sign in again.');
+    await ensureSession();
     if (editLead) {
       const { error } = await db.from('pipeline_leads').update(d).eq('id', editLead);
       if (error) throw error;
@@ -1777,6 +1793,7 @@ async function saveOkrItem() {
   const origText = btn.textContent;
   btn.textContent = 'Saving…'; btn.disabled = true;
   try {
+    await ensureSession();
     const title = document.getElementById('okr-title').value.trim();
     if (!title) {
       document.getElementById('okr-title').style.borderColor = '#ef4444';
