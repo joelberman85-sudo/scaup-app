@@ -1407,26 +1407,30 @@ function openRmModal(id, fromBacklog) {
 function closeRmModal() { document.getElementById('rm-modal').classList.remove('open'); editRm=null; }
 
 async function saveRmItem() {
-  const title = document.getElementById('rm-title').value.trim();
-  if (!title) { document.getElementById('rm-title').style.borderColor='#ef4444'; return; }
-  document.getElementById('rm-title').style.borderColor='';
-  const wasBacklog = editRm && !state.roadmap.find(i=>i.id===editRm)?.quarter;
-  const okrVal = document.getElementById('rm-okr').value;
-  const d = {
-    title,
-    quarter:     document.getElementById('rm-quarter').value,
-    type:        document.getElementById('rm-type').value,
-    status:      document.getElementById('rm-status').value,
-    priority:    document.getElementById('rm-priority').value,
-    owner:       document.getElementById('rm-owner').value,
-    description: document.getElementById('rm-desc').value.trim(),
-    okr_id:      okrVal || null,
-  };
-  const errEl = document.getElementById('rm-error');
+  const errEl  = document.getElementById('rm-error');
   const saveBtn = document.getElementById('rm-save-btn');
-  errEl.style.display = 'none';
-  saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+  const showErr = (msg) => {
+    if (errEl) { errEl.textContent = 'Error: ' + msg; errEl.style.display = 'block'; }
+    else alert('Error: ' + msg);
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+  };
   try {
+    const title = document.getElementById('rm-title').value.trim();
+    if (!title) { document.getElementById('rm-title').style.borderColor='#ef4444'; return; }
+    document.getElementById('rm-title').style.borderColor='';
+    if (errEl) errEl.style.display = 'none';
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+    const okrVal = document.getElementById('rm-okr').value;
+    const d = {
+      title,
+      quarter:     document.getElementById('rm-quarter').value,
+      type:        document.getElementById('rm-type').value,
+      status:      document.getElementById('rm-status').value,
+      priority:    document.getElementById('rm-priority').value,
+      owner:       document.getElementById('rm-owner').value,
+      description: document.getElementById('rm-desc').value.trim(),
+      okr_id:      okrVal || null,
+    };
     await ensureSession();
     if (editRm) {
       const { error } = await db.from('roadmap_items').update(d).eq('id', editRm);
@@ -1442,10 +1446,7 @@ async function saveRmItem() {
     renderRoadmap();
     renderBacklog();
   } catch (err) {
-    errEl.textContent = 'Error saving: ' + (err.message || JSON.stringify(err));
-    errEl.style.display = 'block';
-  } finally {
-    saveBtn.disabled = false; saveBtn.textContent = 'Save';
+    showErr(err.message || JSON.stringify(err));
   }
 }
 
