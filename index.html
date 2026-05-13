@@ -764,12 +764,13 @@ body { background: var(--bg); color: var(--text); height: 100vh; display: flex; 
       <div class="field"><label>Owner</label><select id="rm-owner"><option value="">— Unassigned —</option></select></div>
       <div class="field"><label>OKR</label><select id="rm-okr"><option value="">— Not linked to an OKR —</option></select></div>
       <div class="field"><label>Description</label><textarea id="rm-desc" placeholder="Add description..."></textarea></div>
+      <div id="rm-error" style="display:none;color:#ef4444;font-size:13px;margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:8px;"></div>
     </div>
     <div class="modal-footer">
       <button class="delete-btn hidden" id="rm-del-btn" onclick="deleteRmItem()">Delete Item</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="cancel-btn" onclick="closeRmModal()">Cancel</button>
-        <button class="save-btn" onclick="saveRmItem()">Save</button>
+        <button class="save-btn" id="rm-save-btn" onclick="saveRmItem()">Save</button>
       </div>
     </div>
   </div>
@@ -894,6 +895,7 @@ const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 ════════════════════════════════════════ */
 const ALLOWED_EMAILS = [
   'joelberman85@gmail.com',
+  'joel@craft.io',
   'hillel@scaup.io',
 ];
 
@@ -1402,6 +1404,10 @@ async function saveRmItem() {
     description: document.getElementById('rm-desc').value.trim(),
     okr_id:      okrVal || null,
   };
+  const errEl = document.getElementById('rm-error');
+  const saveBtn = document.getElementById('rm-save-btn');
+  errEl.style.display = 'none';
+  saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
   try {
     if (editRm) {
       const { error } = await db.from('roadmap_items').update(d).eq('id', editRm);
@@ -1417,7 +1423,10 @@ async function saveRmItem() {
     renderRoadmap();
     renderBacklog();
   } catch (err) {
-    alert('Error saving item: ' + err.message);
+    errEl.textContent = 'Error saving: ' + (err.message || JSON.stringify(err));
+    errEl.style.display = 'block';
+  } finally {
+    saveBtn.disabled = false; saveBtn.textContent = 'Save';
   }
 }
 
