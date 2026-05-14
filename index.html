@@ -1628,15 +1628,25 @@ async function saveTeamMember() {
   if (!name) { document.getElementById('team-mem-name').style.borderColor='#ef4444'; return; }
   document.getElementById('team-mem-name').style.borderColor='';
   const d = { name, role: document.getElementById('team-mem-role').value.trim(), email: document.getElementById('team-mem-email').value.trim() };
-  if (editMember) {
-    await db.from('team_members').update(d).eq('id', editMember);
-  } else {
-    await db.from('team_members').insert({ ...d, id: uid() });
+  const saveBtn = document.querySelector('#team-modal .save-btn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+  try {
+    await ensureSession();
+    if (editMember) {
+      const { error } = await db.from('team_members').update(d).eq('id', editMember);
+      if (error) throw error;
+    } else {
+      const { error } = await db.from('team_members').insert({ ...d, id: uid() });
+      if (error) throw error;
+    }
+    closeTeamModal();
+    const { data } = await db.from('team_members').select('*').order('created_at');
+    state.team = data||[];
+    renderTeam();
+  } catch (err) {
+    alert('Error saving member: ' + (err.message || JSON.stringify(err)));
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
   }
-  closeTeamModal();
-  const { data } = await db.from('team_members').select('*').order('created_at');
-  state.team = data||[];
-  renderTeam();
 }
 
 async function deleteTeamMember() {
