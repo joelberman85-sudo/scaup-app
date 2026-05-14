@@ -311,6 +311,7 @@ body { background: var(--bg); color: var(--text); height: 100vh; display: flex; 
 }
 .lead-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,.09); border-color: #c7d2e7; }
 .lead-card.dragging { opacity: 0.4; }
+body.is-dragging .lead-card:not(.dragging) { pointer-events: none; }
 .lead-card.lost { opacity: 0.55; }
 .lead-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .lead-avatar {
