@@ -1521,7 +1521,7 @@ async function saveLeadItem() {
     website:      document.getElementById('lead-website').value.trim(),
     stage:        document.getElementById('lead-stage').value,
     value:        +document.getElementById('lead-value').value||0,
-    owner:        document.getElementById('lead-owner').value,
+    owner:        '',
     source:       document.getElementById('lead-source').value.trim(),
     notes:        document.getElementById('lead-notes').value.trim(),
   };
@@ -1531,6 +1531,7 @@ async function saveLeadItem() {
   saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
   try {
     await ensureSession();
+    d.owner = document.getElementById('lead-owner')?.value || '';
     if (editLead) {
       const { error } = await db.from('pipeline_leads').update(d).eq('id', editLead);
       if (error) throw error;
