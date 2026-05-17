@@ -675,6 +675,9 @@ body.is-dragging .lead-card:not(.dragging) { pointer-events: none; }
             <div class="stat-item">Win Rate <span class="stat-val dark" id="stat-wr">0%</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
+            <select id="pipeline-filter-owner" onchange="renderPipeline()" style="height:36px;border:1.5px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;color:var(--text);background:white;cursor:pointer;">
+              <option value="">All Owners</option>
+            </select>
             <div class="search-wrap">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
               <input class="search-input" type="text" placeholder="Search leads..." oninput="setSearch(this.value)">
@@ -842,7 +845,10 @@ body.is-dragging .lead-card:not(.dragging) { pointer-events: none; }
         </div>
         <div class="field"><label>Value ($)</label><input type="number" id="lead-value" placeholder="0" min="0"></div>
       </div>
-      <div class="field"><label>Source</label><input type="text" id="lead-source" placeholder="e.g. LinkedIn, Cold Outreach, Referral..."></div>
+      <div class="field-row">
+        <div class="field"><label>Owner</label><select id="lead-owner"><option value="">— Unassigned —</option></select></div>
+        <div class="field"><label>Source</label><input type="text" id="lead-source" placeholder="e.g. LinkedIn, Cold Outreach, Referral..."></div>
+      </div>
       <div class="field"><label>Notes</label><textarea id="lead-notes" placeholder="Add notes..."></textarea></div>
       <div id="lead-error" style="display:none;color:#ef4444;font-size:13px;margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:8px;"></div>
     </div>
@@ -917,6 +923,7 @@ const ALLOWED_EMAILS = [
   'joel@craft.io',
   'hillel@scaup.io',
   'tal.b@scaup.io',
+  'tal@scaup.io',
 ];
 
 const QUARTERS = ['Q2 2026', 'Q3 2026', 'Q4 2026'];
@@ -1059,7 +1066,7 @@ function dbToOkr(r) {
 function dbToLead(r) {
   return { id: r.id, company: r.company, contactName: r.contact_name||'',
     email: r.email||'', website: r.website||'', stage: r.stage||'Lead Identified',
-    value: r.value||0, source: r.source||'', notes: r.notes||'', createdAt: r.created_at };
+    value: r.value||0, source: r.source||'', notes: r.notes||'', owner: r.owner||'', createdAt: r.created_at };
 }
 
 /* ════════════════════════════════════════
@@ -1252,11 +1259,20 @@ function renderTimeline() {
 function setSearch(v) { state.search=v; renderPipeline(); }
 
 function renderPipeline() {
+  const ownerSel = document.getElementById('pipeline-filter-owner');
+  if (ownerSel) {
+    const cur = ownerSel.value;
+    const owners = [...new Set(state.pipeline.map(l => l.owner).filter(Boolean))];
+    ownerSel.innerHTML = '<option value="">All Owners</option>' +
+      owners.map(o => `<option value="${esc(o)}"${o===cur?' selected':''}>${esc(o)}</option>`).join('');
+  }
+  const ownerFilter = ownerSel ? ownerSel.value : '';
   const q   = state.search.toLowerCase();
   const all = state.pipeline.filter(l =>
-    !q || l.company.toLowerCase().includes(q) ||
+    (!ownerFilter || l.owner === ownerFilter) &&
+    (!q || l.company.toLowerCase().includes(q) ||
     (l.contactName||'').toLowerCase().includes(q) ||
-    (l.source||'').toLowerCase().includes(q)
+    (l.source||'').toLowerCase().includes(q))
   );
   const total     = all.filter(l => l.stage !== 'Closed Lost');
   const pipeVal   = total.filter(l => l.stage !== 'Closed Won').reduce((s,l) => s+(+l.value||0), 0);
@@ -1307,7 +1323,7 @@ function leadCardHTML(l, lost) {
     </div>
     ${val ? `<div class="lead-value">${fmtMoney(val)}</div>` : ''}
     <div class="lead-footer">
-      ${l.source ? `<span class="source-badge">${esc(l.source)}</span>` : '<span></span>'}
+      ${l.owner ? `<span class="source-badge" style="background:#ede9fe;color:#6d28d9;">${esc(l.owner.split(' ')[0])}</span>` : (l.source ? `<span class="source-badge">${esc(l.source)}</span>` : '<span></span>')}
       ${date ? `<span class="lead-date">${date}</span>` : ''}
     </div>
   </div>`;
@@ -1465,6 +1481,9 @@ async function deleteRmItem() {
 function openLeadModal(id) {
   id = id||null; editLead = id;
   const delBtn = document.getElementById('lead-del-btn');
+  const ownerSel = document.getElementById('lead-owner');
+  ownerSel.innerHTML = '<option value="">— Unassigned —</option>' +
+    state.team.map(m => `<option value="${esc(m.name)}">${esc(m.name)}${m.role?' · '+esc(m.role):''}</option>`).join('');
   if (id) {
     const l = state.pipeline.find(x => x.id===id); if (!l) return;
     document.getElementById('lead-modal-title').textContent = 'Edit Lead';
@@ -1477,11 +1496,13 @@ function openLeadModal(id) {
     document.getElementById('lead-value').value   = l.value||'';
     document.getElementById('lead-source').value  = l.source||'';
     document.getElementById('lead-notes').value   = l.notes||'';
+    ownerSel.value = l.owner||'';
     delBtn.classList.remove('hidden');
   } else {
     ['lead-id','lead-company','lead-contact','lead-email','lead-website','lead-value','lead-source','lead-notes'].forEach(x => document.getElementById(x).value='');
     document.getElementById('lead-modal-title').textContent = 'Add Lead';
     document.getElementById('lead-stage').value = 'Lead Identified';
+    ownerSel.value = '';
     delBtn.classList.add('hidden');
   }
   document.getElementById('lead-modal').classList.add('open');
@@ -1500,6 +1521,7 @@ async function saveLeadItem() {
     website:      document.getElementById('lead-website').value.trim(),
     stage:        document.getElementById('lead-stage').value,
     value:        +document.getElementById('lead-value').value||0,
+    owner:        document.getElementById('lead-owner').value,
     source:       document.getElementById('lead-source').value.trim(),
     notes:        document.getElementById('lead-notes').value.trim(),
   };
