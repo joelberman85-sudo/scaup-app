@@ -1451,10 +1451,18 @@ async function saveRmItem() {
     };
     await ensureSession();
     if (editRm) {
-      const { error } = await db.from('roadmap_items').update(d).eq('id', editRm);
+      let { error } = await db.from('roadmap_items').update(d).eq('id', editRm);
+      if (error && error.message && error.message.includes('owner')) {
+        const { owner, ...dNoOwner } = d;
+        ({ error } = await db.from('roadmap_items').update(dNoOwner).eq('id', editRm));
+      }
       if (error) throw error;
     } else {
-      const { error } = await db.from('roadmap_items').insert({ ...d, id: uid() });
+      let { error } = await db.from('roadmap_items').insert({ ...d, id: uid() });
+      if (error && error.message && error.message.includes('owner')) {
+        const { owner, ...dNoOwner } = d;
+        ({ error } = await db.from('roadmap_items').insert({ ...dNoOwner, id: uid() }));
+      }
       if (error) throw error;
     }
     closeRmModal();
@@ -1533,10 +1541,18 @@ async function saveLeadItem() {
     await ensureSession();
     d.owner = document.getElementById('lead-owner')?.value || '';
     if (editLead) {
-      const { error } = await db.from('pipeline_leads').update(d).eq('id', editLead);
+      let { error } = await db.from('pipeline_leads').update(d).eq('id', editLead);
+      if (error && error.message && error.message.includes('owner')) {
+        const { owner, ...dNoOwner } = d;
+        ({ error } = await db.from('pipeline_leads').update(dNoOwner).eq('id', editLead));
+      }
       if (error) throw error;
     } else {
-      const { error } = await db.from('pipeline_leads').insert({ ...d, id: uid() });
+      let { error } = await db.from('pipeline_leads').insert({ ...d, id: uid() });
+      if (error && error.message && error.message.includes('owner')) {
+        const { owner, ...dNoOwner } = d;
+        ({ error } = await db.from('pipeline_leads').insert({ ...dNoOwner, id: uid() }));
+      }
       if (error) throw error;
     }
     closeLeadModal();
