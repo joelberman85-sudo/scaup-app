@@ -952,6 +952,7 @@ const STAGE_BG = {
 const COLORS = ['#4070F4','#10b981','#f59e0b','#8b5cf6','#06b6d4','#ec4899','#6366f1','#0ea5e9','#14b8a6','#f97316'];
 const color  = s => { let h=0; for(let c of (s||'')) h=(h*31+c.charCodeAt(0))&0xffff; return COLORS[h%COLORS.length]; };
 const uid    = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36);
+const withTimeout = (promise, ms=10000) => Promise.race([promise, new Promise((_,reject)=>setTimeout(()=>reject(new Error('Request timed out — check your connection and try again.')),ms))]);
 const esc    = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmtMoney = n => { if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+(n/1e3).toFixed(1)+'K'; return '$'+n.toLocaleString(); };
 const fmtDate  = ts => { if(!ts) return ''; const d=Math.floor((Date.now()-new Date(ts).getTime())/86400000); if(d===0) return 'Today'; if(d===1) return 'Yesterday'; return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
@@ -1449,19 +1450,19 @@ async function saveRmItem() {
       description: document.getElementById('rm-desc').value.trim(),
       okr_id:      okrVal || null,
     };
-    await ensureSession();
+    await withTimeout(ensureSession());
     if (editRm) {
-      let { error } = await db.from('roadmap_items').update(d).eq('id', editRm);
+      let { error } = await withTimeout(db.from('roadmap_items').update(d).eq('id', editRm));
       if (error && error.message && error.message.includes('owner')) {
         const { owner, ...dNoOwner } = d;
-        ({ error } = await db.from('roadmap_items').update(dNoOwner).eq('id', editRm));
+        ({ error } = await withTimeout(db.from('roadmap_items').update(dNoOwner).eq('id', editRm)));
       }
       if (error) throw error;
     } else {
-      let { error } = await db.from('roadmap_items').insert({ ...d, id: uid() });
+      let { error } = await withTimeout(db.from('roadmap_items').insert({ ...d, id: uid() }));
       if (error && error.message && error.message.includes('owner')) {
         const { owner, ...dNoOwner } = d;
-        ({ error } = await db.from('roadmap_items').insert({ ...dNoOwner, id: uid() }));
+        ({ error } = await withTimeout(db.from('roadmap_items').insert({ ...dNoOwner, id: uid() })));
       }
       if (error) throw error;
     }
@@ -1538,20 +1539,20 @@ async function saveLeadItem() {
   errEl.style.display = 'none';
   saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
   try {
-    await ensureSession();
+    await withTimeout(ensureSession());
     d.owner = document.getElementById('lead-owner')?.value || '';
     if (editLead) {
-      let { error } = await db.from('pipeline_leads').update(d).eq('id', editLead);
+      let { error } = await withTimeout(db.from('pipeline_leads').update(d).eq('id', editLead));
       if (error && error.message && error.message.includes('owner')) {
         const { owner, ...dNoOwner } = d;
-        ({ error } = await db.from('pipeline_leads').update(dNoOwner).eq('id', editLead));
+        ({ error } = await withTimeout(db.from('pipeline_leads').update(dNoOwner).eq('id', editLead)));
       }
       if (error) throw error;
     } else {
-      let { error } = await db.from('pipeline_leads').insert({ ...d, id: uid() });
+      let { error } = await withTimeout(db.from('pipeline_leads').insert({ ...d, id: uid() }));
       if (error && error.message && error.message.includes('owner')) {
         const { owner, ...dNoOwner } = d;
-        ({ error } = await db.from('pipeline_leads').insert({ ...dNoOwner, id: uid() }));
+        ({ error } = await withTimeout(db.from('pipeline_leads').insert({ ...dNoOwner, id: uid() })));
       }
       if (error) throw error;
     }
