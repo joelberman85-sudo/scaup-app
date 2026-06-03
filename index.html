@@ -652,6 +652,10 @@ body.is-dragging .lead-card:not(.dragging) { pointer-events: none; }
               <option value="">All Status</option>
               <option>Planned</option><option>In Progress</option><option>Validating</option><option>Done</option><option>Blocked</option>
             </select>
+            <select class="filter" onchange="setBacklogFilter('priority',this.value)">
+              <option value="">All Priorities</option>
+              <option>High</option><option>Medium</option><option>Low</option>
+            </select>
           </div>
           <button class="btn btn-primary" onclick="openRmModal(null,true)">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
@@ -1155,8 +1159,9 @@ function backlogItems() {
   return state.roadmap.filter(i => {
     if (backlogFilters.quarter === '__none__' && i.quarter) return false;
     if (backlogFilters.quarter && backlogFilters.quarter !== '__none__' && i.quarter !== backlogFilters.quarter) return false;
-    if (backlogFilters.type   && i.type   !== backlogFilters.type)   return false;
-    if (backlogFilters.status && i.status !== backlogFilters.status) return false;
+    if (backlogFilters.type     && i.type     !== backlogFilters.type)     return false;
+    if (backlogFilters.status   && i.status   !== backlogFilters.status)   return false;
+    if (backlogFilters.priority && i.priority !== backlogFilters.priority) return false;
     return true;
   });
 }
