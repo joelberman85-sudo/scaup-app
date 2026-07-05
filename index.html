@@ -1294,11 +1294,13 @@ function renderPipeline() {
   let h = '';
   STAGES.forEach(stage => {
     const sl = all.filter(l => l.stage === stage);
+    const stageTotal = stage === 'Closed Won' ? sl.reduce((s,l) => s+(+l.value||0), 0) : 0;
     h += `<div class="pipeline-lane" style="background:${STAGE_BG[stage]||'white'}">
       <div class="lane-header">
         <div class="lane-dot" style="background:${STAGE_DOT[stage]}"></div>
         <div class="lane-title">${stage}</div>
         <div class="lane-count">${sl.length}</div>
+        ${stage === 'Closed Won' && stageTotal ? `<div style="margin-left:auto;font-size:12px;font-weight:700;color:#16a34a">${fmtMoney(stageTotal)}</div>` : ''}
       </div>
       <div class="lane-cards"
         ondragover="event.preventDefault();this.classList.add('drag-over')"
