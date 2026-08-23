@@ -844,7 +844,7 @@ body.is-dragging .lead-card:not(.dragging) { pointer-events: none; }
       <div class="field-row">
         <div class="field"><label>Stage</label>
           <select id="lead-stage">
-            <option>Lead Identified</option><option>Demo Scheduled</option><option>Demo Done</option><option>Closed Won</option><option>Closed Lost</option>
+            <option>Leads</option><option>Lead Identified</option><option>Demo Scheduled</option><option>Demo Done</option><option>Closed Won</option><option>Closed Lost</option>
           </select>
         </div>
         <div class="field"><label>Value ($)</label><input type="number" id="lead-value" placeholder="0" min="0"></div>
@@ -932,7 +932,7 @@ const ALLOWED_EMAILS = [
 ];
 
 const QUARTERS = ['Q2 2026', 'Q3 2026', 'Q4 2026'];
-const STAGES   = ['Lead Identified', 'Demo Scheduled', 'Demo Done', 'Closed Won', 'Closed Lost'];
+const STAGES   = ['Leads', 'Lead Identified', 'Demo Scheduled', 'Demo Done', 'Closed Won', 'Closed Lost'];
 
 const STATUS_BADGE = {
   'Planned':     'badge badge-gray',
@@ -947,11 +947,11 @@ const PRIORITY_ICON = {
   'Low':    { sym: '↓', color: '#9ca3af' },
 };
 const STAGE_DOT = {
-  'Lead Identified': '#94a3b8', 'Demo Scheduled': '#4070F4',
+  'Leads': '#cbd5e1', 'Lead Identified': '#94a3b8', 'Demo Scheduled': '#4070F4',
   'Demo Done': '#8b5cf6', 'Closed Won': '#16a34a', 'Closed Lost': '#ef4444',
 };
 const STAGE_BG = {
-  'Lead Identified': '#f8fafc', 'Demo Scheduled': '#f0f7ff',
+  'Leads': '#fafafa', 'Lead Identified': '#f8fafc', 'Demo Scheduled': '#f0f7ff',
   'Demo Done': '#faf5ff', 'Closed Won': '#f0fdf4', 'Closed Lost': '#fff5f5',
 };
 const COLORS = ['#4070F4','#10b981','#f59e0b','#8b5cf6','#06b6d4','#ec4899','#6366f1','#0ea5e9','#14b8a6','#f97316'];
