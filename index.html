@@ -674,6 +674,7 @@ body.is-dragging .lead-card:not(.dragging) { pointer-events: none; }
         <div class="header-row">
           <div class="stats-bar">
             <div class="stat-item">Total <span class="stat-val dark" id="stat-total">0</span></div>
+            <div class="stat-item">Total Value <span class="stat-val dark" id="stat-totalvalue">$0</span></div>
             <div class="stat-item">Pipeline <span class="stat-val blue" id="stat-pipeline">$0</span></div>
             <div class="stat-item">Closed Won <span class="stat-val green" id="stat-won">$0</span></div>
             <div class="stat-item">Win Rate <span class="stat-val dark" id="stat-wr">0%</span></div>
@@ -1282,14 +1283,16 @@ function renderPipeline() {
     (l.source||'').toLowerCase().includes(q))
   );
   const total     = all.filter(l => l.stage !== 'Closed Lost');
+  const totalVal  = total.reduce((s,l) => s+(+l.value||0), 0);
   const pipeVal   = total.filter(l => l.stage !== 'Closed Won').reduce((s,l) => s+(+l.value||0), 0);
   const wonVal    = all.filter(l => l.stage === 'Closed Won').reduce((s,l) => s+(+l.value||0), 0);
   const closed    = all.filter(l => l.stage === 'Closed Won' || l.stage === 'Closed Lost');
   const winRate   = closed.length ? Math.round(all.filter(l=>l.stage==='Closed Won').length/closed.length*100) : 0;
-  document.getElementById('stat-total').textContent    = total.length;
-  document.getElementById('stat-pipeline').textContent = fmtMoney(pipeVal);
-  document.getElementById('stat-won').textContent      = fmtMoney(wonVal);
-  document.getElementById('stat-wr').textContent       = winRate + '%';
+  document.getElementById('stat-total').textContent      = total.length;
+  document.getElementById('stat-totalvalue').textContent = fmtMoney(totalVal);
+  document.getElementById('stat-pipeline').textContent   = fmtMoney(pipeVal);
+  document.getElementById('stat-won').textContent        = fmtMoney(wonVal);
+  document.getElementById('stat-wr').textContent         = winRate + '%';
 
   const board = document.getElementById('pipeline-board');
   let h = '';
