@@ -852,7 +852,17 @@ body.is-dragging .lead-card:not(.dragging) { pointer-events: none; }
       </div>
       <div class="field-row">
         <div class="field"><label>Owner</label><select id="lead-owner"><option value="">— Unassigned —</option></select></div>
-        <div class="field"><label>Source</label><input type="text" id="lead-source" placeholder="e.g. LinkedIn, Cold Outreach, Referral..."></div>
+        <div class="field"><label>Source</label><input type="text" id="lead-source" list="source-options" placeholder="e.g. LinkedIn, Cold Outreach, Referral...">
+          <datalist id="source-options">
+            <option value="Partnerships Roi">
+            <option value="Paid">
+            <option value="Organic">
+            <option value="Cold outreach">
+            <option value="Landing Page">
+            <option value="Sign Up">
+            <option value="Referral">
+          </datalist>
+        </div>
       </div>
       <div class="field"><label>Notes</label><textarea id="lead-notes" placeholder="Add notes..."></textarea></div>
       <div id="lead-error" style="display:none;color:#ef4444;font-size:13px;margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:8px;"></div>
