@@ -694,6 +694,7 @@ body.is-dragging .lead-card:not(.dragging) { pointer-events: none; }
           </div>
         </div>
       </div>
+      <div id="followup-banner" style="display:none;margin:0 24px 16px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font-size:13px;color:#991b1b;"></div>
       <div class="pipeline-wrap">
         <div class="pipeline-board" id="pipeline-board"></div>
       </div>
@@ -863,6 +864,10 @@ body.is-dragging .lead-card:not(.dragging) { pointer-events: none; }
             <option value="Referral">
           </datalist>
         </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Follow-up Date</label><input type="date" id="lead-followup"></div>
+        <div class="field"></div>
       </div>
       <div class="field"><label>Notes</label><textarea id="lead-notes" placeholder="Add notes..."></textarea></div>
       <div id="lead-error" style="display:none;color:#ef4444;font-size:13px;margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:8px;"></div>
@@ -1083,7 +1088,8 @@ function dbToOkr(r) {
 function dbToLead(r) {
   return { id: r.id, company: r.company, contactName: r.contact_name||'',
     email: r.email||'', website: r.website||'', stage: r.stage||'Lead Identified',
-    value: r.value||0, source: r.source||'', notes: r.notes||'', owner: r.owner||'', createdAt: r.created_at };
+    value: r.value||0, source: r.source||'', notes: r.notes||'', owner: r.owner||'',
+    followUpDate: r.follow_up_date||'', createdAt: r.created_at };
 }
 
 /* ════════════════════════════════════════
@@ -1285,6 +1291,23 @@ function renderPipeline() {
       owners.map(o => `<option value="${esc(o)}"${o===cur?' selected':''}>${esc(o)}</option>`).join('');
   }
   const ownerFilter = ownerSel ? ownerSel.value : '';
+
+  const banner = document.getElementById('followup-banner');
+  if (banner) {
+    const due = state.pipeline
+      .filter(l => l.followUpDate && l.stage !== 'Closed Won' && l.stage !== 'Closed Lost')
+      .map(l => ({ l, fu: followUpInfo(l.followUpDate) }))
+      .filter(x => x.fu.diffDays <= 0)
+      .sort((a,b) => a.fu.diffDays - b.fu.diffDays);
+    if (due.length) {
+      banner.style.display = 'block';
+      banner.innerHTML = `🔔 <strong>${due.length} follow-up${due.length>1?'s':''} due</strong> — ` +
+        due.map(x => `<span style="cursor:pointer;text-decoration:underline;" onclick="openLeadModal('${x.l.id}')">${esc(x.l.company)}${x.fu.diffDays<0?' (overdue)':' (today)'}</span>`).join(', ');
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
   const q   = state.search.toLowerCase();
   const all = state.pipeline.filter(l =>
     (!ownerFilter || l.owner === ownerFilter) &&
@@ -1326,11 +1349,23 @@ function renderPipeline() {
   board.innerHTML = h;
 }
 
+function followUpInfo(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const fu = new Date(dateStr + 'T00:00:00');
+  const diffDays = Math.round((fu - today) / 86400000);
+  let bg, color, label;
+  if (diffDays < 0)      { bg='#fef2f2'; color='#ef4444'; label='Overdue ' + fmtDate(dateStr); }
+  else if (diffDays===0) { bg='#fffbeb'; color='#d97706'; label='Due today'; }
+  else                   { bg='#eff6ff'; color='#2563eb'; label=fmtDate(dateStr); }
+  return { bg, color, label, diffDays };
+}
 function leadCardHTML(l, lost) {
   const val  = +l.value || 0;
   const init = (l.company||'?').slice(0,2).toUpperCase();
   const bg   = color(l.company||'');
   const date = fmtDate(l.createdAt);
+  const fu   = followUpInfo(l.followUpDate);
   return `<div class="lead-card${lost?' lost':''}" draggable="true"
     ondragstart="onDragStart(event,'${l.id}','pipeline')"
     ondragend="onDragEnd(event)"
@@ -1344,6 +1379,7 @@ function leadCardHTML(l, lost) {
       </div>
     </div>
     ${val ? `<div class="lead-value">${fmtMoney(val)}</div>` : ''}
+    ${fu ? `<div style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:${fu.color};background:${fu.bg};padding:2px 8px;border-radius:99px;margin-bottom:8px;">🔔 ${fu.label}</div>` : ''}
     <div class="lead-footer">
       ${l.owner ? `<span class="source-badge" style="background:#ede9fe;color:#6d28d9;">${esc(l.owner.split(' ')[0])}</span>` : (l.source ? `<span class="source-badge">${esc(l.source)}</span>` : '<span></span>')}
       ${date ? `<span class="lead-date">${date}</span>` : ''}
@@ -1526,10 +1562,11 @@ function openLeadModal(id) {
     document.getElementById('lead-value').value   = l.value||'';
     document.getElementById('lead-source').value  = l.source||'';
     document.getElementById('lead-notes').value   = l.notes||'';
+    document.getElementById('lead-followup').value = l.followUpDate||'';
     ownerSel.value = l.owner||'';
     delBtn.classList.remove('hidden');
   } else {
-    ['lead-id','lead-company','lead-contact','lead-email','lead-website','lead-value','lead-source','lead-notes'].forEach(x => document.getElementById(x).value='');
+    ['lead-id','lead-company','lead-contact','lead-email','lead-website','lead-value','lead-source','lead-notes','lead-followup'].forEach(x => document.getElementById(x).value='');
     document.getElementById('lead-modal-title').textContent = 'Add Lead';
     document.getElementById('lead-stage').value = 'Lead Identified';
     ownerSel.value = '';
@@ -1554,6 +1591,7 @@ async function saveLeadItem() {
     owner:        '',
     source:       document.getElementById('lead-source').value.trim(),
     notes:        document.getElementById('lead-notes').value.trim(),
+    follow_up_date: document.getElementById('lead-followup').value || null,
   };
   const errEl = document.getElementById('lead-error');
   const saveBtn = document.getElementById('lead-save-btn');
@@ -1568,12 +1606,20 @@ async function saveLeadItem() {
         const { owner, ...dNoOwner } = d;
         ({ error } = await withTimeout(db.from('pipeline_leads').update(dNoOwner).eq('id', editLead)));
       }
+      if (error && error.message && error.message.includes('follow_up_date')) {
+        const { follow_up_date, ...dNoFU } = d;
+        ({ error } = await withTimeout(db.from('pipeline_leads').update(dNoFU).eq('id', editLead)));
+      }
       if (error) throw error;
     } else {
       let { error } = await withTimeout(db.from('pipeline_leads').insert({ ...d, id: uid() }));
       if (error && error.message && error.message.includes('owner')) {
         const { owner, ...dNoOwner } = d;
         ({ error } = await withTimeout(db.from('pipeline_leads').insert({ ...dNoOwner, id: uid() })));
+      }
+      if (error && error.message && error.message.includes('follow_up_date')) {
+        const { follow_up_date, ...dNoFU } = d;
+        ({ error } = await withTimeout(db.from('pipeline_leads').insert({ ...dNoFU, id: uid() })));
       }
       if (error) throw error;
     }
