@@ -671,6 +671,7 @@ body.is-dragging .lead-card:not(.dragging) { pointer-events: none; }
       <div class="page-header">
         <h1>Pipeline</h1>
         <p>Track leads through your sales process</p>
+        <div id="quarter-summary" style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:12px 0 4px;padding:12px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;"></div>
         <div class="header-row">
           <div class="stats-bar">
             <div class="stat-item">Total <span class="stat-val dark" id="stat-total">0</span></div>
@@ -867,7 +868,7 @@ body.is-dragging .lead-card:not(.dragging) { pointer-events: none; }
       </div>
       <div class="field-row">
         <div class="field"><label>Follow-up Date</label><input type="date" id="lead-followup"></div>
-        <div class="field"></div>
+        <div class="field"><label>Closed Date</label><input type="date" id="lead-closed"></div>
       </div>
       <div class="field"><label>Notes</label><textarea id="lead-notes" placeholder="Add notes..."></textarea></div>
       <div id="lead-error" style="display:none;color:#ef4444;font-size:13px;margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:8px;"></div>
@@ -1089,7 +1090,7 @@ function dbToLead(r) {
   return { id: r.id, company: r.company, contactName: r.contact_name||'',
     email: r.email||'', website: r.website||'', stage: r.stage||'Lead Identified',
     value: r.value||0, source: r.source||'', notes: r.notes||'', owner: r.owner||'',
-    followUpDate: r.follow_up_date||'', createdAt: r.created_at };
+    followUpDate: r.follow_up_date||'', closedDate: r.closed_date||'', createdAt: r.created_at };
 }
 
 /* ════════════════════════════════════════
@@ -1315,6 +1316,20 @@ function renderPipeline() {
     (l.contactName||'').toLowerCase().includes(q) ||
     (l.source||'').toLowerCase().includes(q))
   );
+  const now = new Date(), qNum = Math.floor(now.getMonth()/3) + 1, yr = now.getFullYear();
+  const pad = n => String(n).padStart(2, '0');
+  const qStart = `${yr}-${pad((qNum-1)*3 + 1)}-01`;
+  const qEnd   = qNum === 4 ? `${yr+1}-01-01` : `${yr}-${pad(qNum*3 + 1)}-01`;
+  const openDeals = all.filter(l => l.stage !== 'Closed Won' && l.stage !== 'Closed Lost');
+  const inQuarter = openDeals.filter(l => l.closedDate && l.closedDate >= qStart && l.closedDate < qEnd);
+  const noDate    = openDeals.filter(l => !l.closedDate).length;
+  const qEl = document.getElementById('quarter-summary');
+  if (qEl) qEl.innerHTML =
+    `<span style="font-size:12px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.04em;">Q${qNum} ${yr} potential pipeline</span>` +
+    `<span style="font-size:22px;font-weight:800;color:var(--text);">${fmtMoney(inQuarter.reduce((s,l) => s+(+l.value||0), 0))}</span>` +
+    `<span style="font-size:12px;color:var(--muted);">${inQuarter.length} open deal${inQuarter.length===1?'':'s'} closing this quarter` +
+    (noDate ? ` · ${noDate} open without a closed date` : '') + `</span>`;
+
   const total     = all.filter(l => l.stage !== 'Closed Lost');
   const totalVal  = total.reduce((s,l) => s+(+l.value||0), 0);
   const pipeVal   = total.filter(l => l.stage !== 'Closed Won').reduce((s,l) => s+(+l.value||0), 0);
@@ -1563,10 +1578,11 @@ function openLeadModal(id) {
     document.getElementById('lead-source').value  = l.source||'';
     document.getElementById('lead-notes').value   = l.notes||'';
     document.getElementById('lead-followup').value = l.followUpDate||'';
+    document.getElementById('lead-closed').value   = l.closedDate||'';
     ownerSel.value = l.owner||'';
     delBtn.classList.remove('hidden');
   } else {
-    ['lead-id','lead-company','lead-contact','lead-email','lead-website','lead-value','lead-source','lead-notes','lead-followup'].forEach(x => document.getElementById(x).value='');
+    ['lead-id','lead-company','lead-contact','lead-email','lead-website','lead-value','lead-source','lead-notes','lead-followup','lead-closed'].forEach(x => document.getElementById(x).value='');
     document.getElementById('lead-modal-title').textContent = 'Add Lead';
     document.getElementById('lead-stage').value = 'Lead Identified';
     ownerSel.value = '';
@@ -1592,6 +1608,7 @@ async function saveLeadItem() {
     source:       document.getElementById('lead-source').value.trim(),
     notes:        document.getElementById('lead-notes').value.trim(),
     follow_up_date: document.getElementById('lead-followup').value || null,
+    closed_date:  document.getElementById('lead-closed').value || null,
   };
   const errEl = document.getElementById('lead-error');
   const saveBtn = document.getElementById('lead-save-btn');
@@ -1600,29 +1617,20 @@ async function saveLeadItem() {
   try {
     await withTimeout(ensureSession());
     d.owner = document.getElementById('lead-owner')?.value || '';
-    if (editLead) {
-      let { error } = await withTimeout(db.from('pipeline_leads').update(d).eq('id', editLead));
-      if (error && error.message && error.message.includes('owner')) {
-        const { owner, ...dNoOwner } = d;
-        ({ error } = await withTimeout(db.from('pipeline_leads').update(dNoOwner).eq('id', editLead)));
-      }
-      if (error && error.message && error.message.includes('follow_up_date')) {
-        const { follow_up_date, ...dNoFU } = d;
-        ({ error } = await withTimeout(db.from('pipeline_leads').update(dNoFU).eq('id', editLead)));
-      }
-      if (error) throw error;
-    } else {
-      let { error } = await withTimeout(db.from('pipeline_leads').insert({ ...d, id: uid() }));
-      if (error && error.message && error.message.includes('owner')) {
-        const { owner, ...dNoOwner } = d;
-        ({ error } = await withTimeout(db.from('pipeline_leads').insert({ ...dNoOwner, id: uid() })));
-      }
-      if (error && error.message && error.message.includes('follow_up_date')) {
-        const { follow_up_date, ...dNoFU } = d;
-        ({ error } = await withTimeout(db.from('pipeline_leads').insert({ ...dNoFU, id: uid() })));
-      }
-      if (error) throw error;
+    const row = editLead ? d : { ...d, id: uid() };
+    const write = r => editLead
+      ? db.from('pipeline_leads').update(r).eq('id', editLead)
+      : db.from('pipeline_leads').insert(r);
+    // Optional columns may not exist yet in Supabase; drop whichever the error names and retry.
+    let payload = row, error;
+    for (let i = 0; i < 4; i++) {
+      ({ error } = await withTimeout(write(payload)));
+      const missing = error && ['owner', 'follow_up_date', 'closed_date'].find(c => error.message && error.message.includes(c) && c in payload);
+      if (!missing) break;
+      const { [missing]: _drop, ...rest } = payload;
+      payload = rest;
     }
+    if (error) throw error;
     closeLeadModal();
     const { data } = await db.from('pipeline_leads').select('*').order('created_at');
     state.pipeline = (data||[]).map(dbToLead);
